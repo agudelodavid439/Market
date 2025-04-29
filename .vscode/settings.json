@@ -1,0 +1,45 @@
+{
+	"editor.defaultFormatter": "esbenp.prettier-vscode",
+	"editor.formatOnSave": true,
+	"editor.codeActionsOnSave": {
+		"source.fixAll.eslint": "explicit"
+	},
+	"workbench.colorTheme": "Cursor Dark",
+	"editor.tokenColorCustomizations": {
+		"textMateRules": [
+			{
+				"scope": "keyword.control",
+				"settings": {
+					"foreground": "#C678DD"
+				}
+			},
+			{
+				"scope": "storage.type",
+				"settings": {
+					"foreground": "#E5C07B"
+				}
+			},
+			{
+				"scope": "entity.name.function",
+				"settings": {
+					"foreground": "#61AFEF"
+				}
+			}
+		]
+	},
+	"[javascript]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[typescript]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[svelte]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[css]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[json]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	}
+}

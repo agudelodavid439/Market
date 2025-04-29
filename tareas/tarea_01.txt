@@ -1,0 +1,55 @@
+1. Contexto General
+Nombre del proyecto:
+[marketApp]
+
+Descripción breve:
+[Es un Markeplace webapp que abre cada archivo en un popup centrado, es individual para un negocio con 2 sedes con sistema de inventario, chat integrado, carrito de compras, gestion de pedidos, inisio y registro de sesion integrado con supabase]
+
+Usuarios objetivo:
+[usuario principal: Admin= agudelodavid439@gmail.com, usuario secundario: Manager= licorerapuertofierro33@gmail.com, 10 usuarios mas con permisos de editor sin correo establecido aun]
+
+2. Requisitos principales / Funcionalidades clave
+Lista las funcionalidades principales que debe tener el proyecto, en forma de puntos.
+
+[Funcionalidad 1, Registro de usuarios y inisio de sesion]
+[Funcionalidad 2, Gestión de inventario con fecha de vencimientos incuido]
+[Funcionalidad 3, chat integrado]
+[Funcionalidad 4, carrito de compras funcional]
+[Funcionalidad 5, gestion de pedidos]
+[Funcionalidad 6, gestion de productos con 5 celdas para poner 5 precios diferentes y cupones de descuento]
+[Funcionalidad 7, gestion de sistema pos para cada negocio, son dos negocios "Kennedy, Puente_Aranda]
+[Funcionalidad 8, en el header en el centro un buscador inteligente que filtre los productos del body]
+[Funcionalidad 9, colocar filtros inteligentes y interactivos a todas las seciones]
+
+
+
+
+
+3. Componentes y módulos del sistema
+
+Frontend: [+page "solo llama a otros archivos nada mas, header.svelte " solo llama a otros archivos nada más]
+Backend: [sveltkiy + tipescrypt + vite + ]
+Base de datos: [supabase= ablas: products, pedidos, users,registrations]
+4. Flujos principales y lógica de negocio
+Explica cómo se espera que funcione el sistema en relación a los usuarios y las tareas principales.
+
+
+5. Dependencias y Reglas Especiales
+Dependencias entre módulos/tareas:
+[1: El carrito de compras permite hacer la compra asi el usuario no esté autenticado, si esta autenticado entonces permite acceder a los cupones de descuento, permite que se genere la compra aunque el usuario no halla realizado el pago]
+[2: El chat sólo funciona si el registro está implementado]
+[3: Un producto no puede ser publicado si no tiene inventario asignado]
+[4: el producto debe tener 5 precios diferentes y las mismas columnas que el archivo= products_rows.sql ]
+[5: los pedidos deben tener  las mismas columnas que el archivo= pedidos_rows.sql ]
+[6: los productos deben tener un boton con un icono de agregar al carrito y permitir agregar al carrito ]
+[7:  al dar clicke el logo de la ezquina del encabezado entonces abrir una barra lateral con un menu ubicada en el archivo= menu_izquierda.svelte]
+
+
+
+
+
+Instrucciones para IA:
+— Utiliza la información de esta plantilla para desglosar el proyecto en tareas pequeñas y lógicas; mantén el orden de dependencias y solicita aclaraciones si algún punto no queda claro.
+— Al implementar, marca cada tarea como finalizada al completarla e informa sobre bloqueos o dudas que surjan.
+- siempre contestar en español
+- implementar diseños creativos, elegantes y atractivos al ojo humano, guiate en el estilo de las imagenes para generar estilos, por ejemplo el estilo del header debe estar en el encabezado de cada popup.

@@ -1,0 +1,15 @@
+{
+	"mcpServers": {
+		"github.com/alexander-zuev/supabase-mcp-server": {
+			"command": "C:\\Users\\Admin\\.local\\bin\\supabase-mcp-server.exe",
+			"env": {
+				"QUERY_API_KEY": "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",
+				"SUPABASE_PROJECT_REF": "mcedssdlzhryfscjagrd",
+				"SUPABASE_DB_PASSWORD": "Marketing",
+				"SUPABASE_REGION": "us-east-1",
+				"SUPABASE_ACCESS_TOKEN": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jZWRzc2RsemhyeWZzY2phZ3JkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTczNzAwMSwiZXhwIjoyMDYxMzEzMDAxfQ.ZrR0w8mQySrFxpcpTUTphsKI_ypd0gH8lqbT72pAvVU",
+				"SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jZWRzc2RsemhyeWZzY2phZ3JkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTczNzAwMSwiZXhwIjoyMDYxMzEzMDAxfQ.ZrR0w8mQySrFxpcpTUTphsKI_ypd0gH8lqbT72pAvVU"
+			}
+		}
+	}
+}

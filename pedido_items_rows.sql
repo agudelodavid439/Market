@@ -1,0 +1,1 @@
+INSERT INTO "public"."pedido_items" ("id", "pedido_id", "producto_id", "cantidad", "precio", "subtotal") VALUES ('36', 'pedido_1', '53', '2', '10.00', '20.00'), ('37', 'pedido_2', '54', '1', '15.00', '15.00'), ('38', 'pedido_3', '55', '3', '5.00', '15.00'), ('39', 'pedido_4', '56', '1', '10.00', '10.00'), ('40', 'pedido_5', '57', '2', '20.00', '40.00');

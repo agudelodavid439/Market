@@ -1,0 +1,52 @@
+# TAREAS BASE DE DATOS - MARKET APP
+
+## 1. Tabla de Productos
+- Crear tabla con columnas según products_rows.sql
+- Implementar 5 campos para diferentes precios
+- Campos para gestión de inventario
+- Campo para fecha de vencimiento
+- Campo para sede (Kennedy, Puente_Aranda)
+- Índices para búsquedas eficientes
+
+## 2. Tabla de Pedidos
+- Crear tabla con columnas según pedidos_rows.sql
+- Relaciones con tabla de usuarios y productos
+- Campo para estado del pedido
+- Campo para método de pago
+- Campo para cupón aplicado
+- Timestamps para seguimiento
+
+## 3. Tabla de Usuarios
+- Campos para datos personales
+- Campo para rol (Admin, Manager, Editor)
+- Relación con pedidos y carritos
+- Historial de actividad
+- Preferencias del usuario
+
+## 4. Tabla de Carritos
+- Relación con usuarios (opcional para usuarios no autenticados)
+- Relación con productos
+- Campo para cantidades
+- Campo para descuentos aplicados
+- Timestamp de creación y última modificación
+
+## 5. Tabla de Chat
+- Campos para remitente y destinatario
+- Campo para contenido del mensaje
+- Timestamps
+- Estado de lectura
+- Adjuntos (opcional)
+
+## 6. Tabla de Inventario
+- Relación con productos
+- Campo para cantidad disponible por sede
+- Histórico de movimientos
+- Alertas de stock bajo
+- Registro de ajustes de inventario
+
+## 7. Tabla de Cupones
+- Código único
+- Porcentaje o monto de descuento
+- Fecha de validez
+- Restricciones de uso
+- Contador de usos 

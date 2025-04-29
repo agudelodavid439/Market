@@ -1,0 +1,45 @@
+# TAREAS BACKEND - MARKET APP
+
+## 1. Configuración de Supabase
+- Establecer tablas en Supabase (products, pedidos, users, registrations)
+- Configurar relaciones entre tablas
+- Implementar reglas de seguridad y permisos
+
+## 2. API de Productos
+- Endpoint para listar productos con filtros
+- Endpoint para obtener detalles de producto individual
+- Endpoint para gestionar 5 precios diferentes por producto
+- Validación de inventario antes de publicación
+- Integración con sistema de imágenes
+
+## 3. API de Carrito
+- Endpoint para agregar productos al carrito
+- Endpoint para modificar cantidades
+- Endpoint para aplicar cupones de descuento
+- Persistencia de carrito para usuarios no autenticados
+- Validación de inventario disponible
+
+## 4. API de Pedidos
+- Endpoint para crear pedidos
+- Endpoint para actualizar estado de pedidos
+- Implementar lógica para pedidos sin pago completado
+- Endpoint para historial de pedidos por usuario
+- Generación de códigos de pedido únicos
+
+## 5. API de Inventario
+- Endpoint para gestionar stock entre las dos sedes
+- Endpoint para actualizar fecha de vencimiento de productos
+- Lógica para actualizar inventario automáticamente tras ventas
+- Alertas para productos próximos a vencer
+
+## 6. API de Autenticación
+- Integración con sistema de autenticación de Supabase
+- Gestión de sesiones
+- Manejo de permisos para diferentes roles (Admin, Manager, Editor)
+- Endpoints para registro y login
+
+## 7. API de Chat
+- Endpoint para enviar mensajes
+- Endpoint para recuperar historial de conversaciones
+- Implementación de websockets para mensajes en tiempo real
+- Notificaciones push 

@@ -1,0 +1,51 @@
+# TAREAS DISEÑO UI/UX - MARKET APP
+
+## 1. Header
+- Diseñar encabezado en azul oscuro con texto blanco según imágenes
+- Tres columnas: logo a la izquierda, buscador grande al centro, iconos a la derecha
+- Barra de búsqueda destacada y centrada
+- Iconos intuitivos para carrito, usuario y otras funciones
+- Estilo consistente en todas las páginas y popups
+
+## 2. Carrito de Compras
+- Diseñar popup modal centrado con estilo acorde a las imágenes
+- Formulario de datos de cliente con iconos descriptivos
+- Lista de productos con controles para incrementar/decrementar cantidades
+- Campo para cupones con validación visual
+- Botón destacado en color verde para completar la compra
+- Selector de método de pago con opciones claras
+
+## 3. Catálogo de Productos
+- Diseñar tarjetas de producto con imagen, nombre y precio
+- Botón de "Agregar al carrito" visible y accesible
+- Filtros interactivos en la parte superior
+- Diseño responsive que se adapte a diferentes dispositivos
+- Efectos visuales sutiles al interactuar con los productos
+
+## 4. Popups y Modales
+- Estilo consistente para todos los popups
+- Botón de cierre (X) en la esquina superior derecha
+- Animaciones suaves de apertura y cierre
+- Fondo oscurecido detrás de los popups
+- Diseño centrado en la pantalla
+
+## 5. Menú Lateral
+- Diseño para menú desplegable al hacer clic en el logo
+- Lista de navegación con iconos y texto
+- Indicador visual para la sección actual
+- Transiciones suaves al abrir y cerrar
+- Versión móvil adaptada
+
+## 6. Sistema POS
+- Interfaz de punto de venta adaptada a las dos sedes
+- Diseño optimizado para pantallas táctiles
+- Acceso rápido a funciones frecuentes
+- Visualización clara del inventario disponible
+- Indicadores visuales para productos próximos a vencer
+
+## 7. Paleta de Colores y Tipografía
+- Azul oscuro (#132B50) como color principal
+- Verde (#5BD5A0) para botones de acción
+- Blanco para texto sobre fondos oscuros
+- Gris claro para fondos secundarios
+- Tipografía sans-serif legible en todos los tamaños 

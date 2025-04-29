@@ -1,0 +1,56 @@
+# PRIORIDADES DEL PROYECTO - MARKET APP
+
+## Prioridad Alta (Implementación Inmediata)
+1. **Header con buscador inteligente**
+   - Diseño con 3 columnas según imágenes
+   - Buscador inteligente centrado y grande
+   - Integración con catálogo de productos
+
+2. **Carrito de compras funcional**
+   - Popup con diseño según imágenes
+   - Funcionalidad para ajustar cantidades
+   - Formulario de datos del cliente
+   - Implementación de cupones (para usuarios autenticados)
+
+3. **Catálogo de productos**
+   - Visualización de productos con imágenes
+   - Botón para agregar al carrito
+   - Filtros interactivos
+   - Mostrar precios según el tipo de usuario
+
+4. **Sistema de autenticación**
+   - Registro e inicio de sesión con Supabase
+   - Gestión de roles (Admin, Manager, Editor)
+   - Persistencia de sesión
+
+## Prioridad Media (Segunda Fase)
+5. **Gestión de inventario**
+   - Control de stock para las dos sedes
+   - Alertas de productos próximos a vencer
+   - Actualización automática tras ventas
+
+6. **Gestión de pedidos**
+   - Seguimiento de estado de pedidos
+   - Historial de pedidos por usuario
+   - Diferentes métodos de pago
+
+7. **Sistema POS**
+   - Interfaz para punto de venta en ambas sedes
+   - Integración con inventario
+   - Registro de ventas presenciales
+
+## Prioridad Baja (Fase Final)
+8. **Chat integrado**
+   - Mensajería entre usuarios
+   - Notificaciones en tiempo real
+   - Historial de conversaciones
+
+9. **Reportes y estadísticas**
+   - Ventas por período
+   - Productos más vendidos
+   - Rendimiento por sede
+
+10. **Optimizaciones finales**
+    - Mejoras de rendimiento
+    - Pulido de interfaz
+    - Pruebas exhaustivas 

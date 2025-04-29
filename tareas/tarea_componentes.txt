@@ -1,0 +1,87 @@
+# COMPONENTES PRINCIPALES - MARKET APP
+
+## Componentes de Layout
+1. **Header.svelte**
+   - Logo (izquierda)
+   - Buscador inteligente (centro)
+   - Iconos de navegación (derecha)
+   - Estilo según imágenes de referencia
+
+2. **Menu_izquierda.svelte**
+   - Menú desplegable desde el logo
+   - Enlaces a secciones principales
+   - Opciones según rol de usuario
+
+3. **Footer.svelte**
+   - Información de contacto
+   - Enlaces a políticas
+   - Selección de sede
+
+## Componentes de Productos
+4. **ProductCard.svelte**
+   - Imagen del producto
+   - Nombre y precio
+   - Botón para agregar al carrito
+   - Variación de precio según usuario
+
+5. **ProductList.svelte**
+   - Grid de ProductCard
+   - Paginación o scroll infinito
+   - Integración con filtros
+
+6. **ProductFilter.svelte**
+   - Filtros interactivos
+   - Búsqueda por categoría, precio, etc.
+   - Ordenamiento de resultados
+
+## Componentes de Carrito
+7. **CarritoPopup.svelte**
+   - Modal centrado con X para cerrar
+   - Lista de productos en carrito
+   - Formulario de datos según imagen
+   - Resumen de precios y total
+
+8. **CarritoItem.svelte**
+   - Imagen de producto
+   - Nombre y precio
+   - Controles para aumentar/disminuir cantidad
+   - Botón para eliminar
+
+9. **MetodoPagoSelector.svelte**
+   - Opciones de pago
+   - Validación según método seleccionado
+   - Instrucciones para completar el pago
+
+## Componentes de Autenticación
+10. **LoginForm.svelte**
+    - Campos para email y contraseña
+    - Integración con Supabase
+    - Manejo de errores
+
+11. **RegisterForm.svelte**
+    - Campos para registro
+    - Validación de datos
+    - Asignación de rol predeterminado
+
+## Componentes de Pedidos
+12. **PedidosList.svelte**
+    - Lista de pedidos del usuario
+    - Filtros por estado
+    - Detalles de cada pedido
+
+13. **PedidoDetail.svelte**
+    - Información completa del pedido
+    - Estado actual
+    - Productos incluidos
+    - Información de entrega
+
+## Componentes de Inventario
+14. **InventarioManager.svelte**
+    - Gestión de stock por sede
+    - Alertas de productos próximos a vencer
+    - Funciones para ajustar inventario
+
+15. **POSInterface.svelte**
+    - Interfaz para punto de venta
+    - Selección rápida de productos
+    - Finalización de venta 

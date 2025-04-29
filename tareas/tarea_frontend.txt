@@ -1,0 +1,43 @@
+# TAREAS FRONTEND - MARKET APP
+
+## 1. Header
+- Implementar encabezado con 3 columnas:
+  - Columna 1 (izquierda): Logo clickeable que abre menu_izquierda.svelte
+  - Columna 2 (centro): Buscador inteligente grande (filtrado en tiempo real)
+  - Columna 3 (derecha): Iconos de carrito, usuario y otras funciones
+- Mantener estilo azul oscuro con texto blanco según imágenes
+- Garantizar que el diseño sea responsive
+
+## 2. Carrito de Compras
+- Implementar popup centrado con diseño de las imágenes
+- Formulario para datos del cliente (nombre, teléfono, dirección)
+- Lista de productos con funcionalidad para ajustar cantidades
+- Sección para códigos de descuento (solo visible para usuarios autenticados)
+- Botón para completar la compra
+- Selector de método de pago
+
+## 3. Catálogo de Productos
+- Implementar vista de productos con filtros inteligentes e interactivos
+- Cada producto debe tener botón para agregar al carrito
+- Mostrar imágenes, nombre y precio de productos
+- Implementar sistema de paginación o carga infinita
+
+## 4. Sistema de Autenticación
+- Pantallas para registro y login
+- Integración con Supabase
+- Gestión de permisos según tipo de usuario
+
+## 5. Chat Integrado
+- Interfaz de chat con historial de mensajes
+- Notificaciones en tiempo real
+- Solo disponible para usuarios autenticados
+
+## 6. Panel de Gestión de Pedidos
+- Vista de pedidos en curso
+- Detalles de cada pedido
+- Cambio de estado de pedidos
+
+## 7. Menú Lateral
+- Implementar menú desplegable al hacer clic en el logo
+- Navegación a las diferentes secciones de la aplicación
+- Estilo acorde con el diseño principal 

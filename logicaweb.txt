@@ -1,0 +1,64 @@
+Market
+1. Arquitectura General
+Frontend: Desarrollado con Svelte/SvelteKit para una interfaz reactiva
+Backend: Servidor Node.js con Express
+Base de Datos: Supabase (PostgreSQL)
+Integración IA: Conexión a Groq AI mediante API
+2. Gestión de Productos
+Estructura de datos: Productos con múltiples atributos (ID, nombre, imagen, tipo, precios diferentes, stock)
+Operaciones CRUD:
+Obtener todos los productos (obtenerProductos)
+Obtener producto por ID (obtenerProductoPorId)
+Guardar/actualizar producto (guardarProducto, actualizarProducto)
+Eliminar producto (eliminarProductoPorId)
+Precios diferenciados: Precios distintos según modalidad (puerta, puerta11, domicilio, domicilio11)
+3. Gestión de Pedidos
+Estructura de datos: Pedidos con información completa (cliente, productos, total, estado)
+Operaciones CRUD:
+Crear pedido (crearPedido)
+Obtener pedidos (obtenerPedidos)
+Obtener pedido por ID (obtenerPedidoPorId)
+Actualizar pedido (actualizarPedido)
+Eliminar pedido (eliminarPedido)
+Información de entrega: Dirección, método de envío, fecha estimada
+4. Carrito de Compras
+Estado global: Store de Svelte para mantener productos en carrito
+Funcionalidades:
+Agregar productos
+Modificar cantidades
+Calcular total automáticamente
+Visualización flotante del carrito
+Formulario de datos de cliente integrado
+5. Interfaz de Usuario
+Componentes clave:
+Header con buscador
+Listado de productos
+Carrito flotante
+Formulario de pedido
+Panel de inventario
+Panel de pedidos
+Diseño responsivo: Adaptable a diferentes dispositivos
+6. Integración con IA
+Chat con IA: Interfaz de conversación con Groq AI
+Gestión de recursos:
+Contador de tokens
+Límite de rates
+Caché de respuestas frecuentes
+Características avanzadas:
+Detección de bloques de código
+Panel de ajustes/configuración
+7. Flujo de Compra
+Usuario busca/navega productos
+Agrega productos al carrito
+Revisa carrito con detalle de productos y total
+Completa formulario con datos personales y dirección
+Selecciona método de pago
+Confirma pedido (generando número de orden)
+8. Administración
+Gestión de inventario (stock, precios, información)
+Visualización y gestión de pedidos
+Categorización de productos
+9. Seguridad y Autenticación
+Integración con Supabase para autenticación
+Políticas de acceso a datos
+Esta estructura organiza la lógica principal de la aplicación Market, una tienda virtual con gestión completa de productos, pedidos y asistencia mediante IA.

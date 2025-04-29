@@ -1,0 +1,48 @@
+# EXPLICACIÓN SIMPLE DE NUESTRA TIENDA VIRTUAL
+
+## ¿Qué estamos construyendo?
+Estamos construyendo una tienda virtual, como un supermercado pero en internet. Las personas pueden ver productos, elegir cuáles quieren comprar y ponerlos en su carrito de compras.
+
+## ¿Cómo funciona?
+1. Arriba de la página hay un **Header** (como una cabecera) con:
+   - Un logo a la izquierda que puedes hacer clic
+   - Un buscador grande en el centro para encontrar productos
+   - Iconos a la derecha para ver tu carrito y tu cuenta
+
+2. Cuando ves un producto que te gusta:
+   - Le das clic al botón "Agregar al carrito"
+   - El producto se guarda en tu carrito
+
+3. Cuando quieres comprar:
+   - Abres tu carrito de compras
+   - Puedes cambiar cuántos productos quieres
+   - Escribes tu nombre, teléfono y dirección
+   - Eliges cómo quieres pagar
+   - ¡Y listo! Tu compra está hecha
+
+## Los archivos que creamos
+
+Imagina que estás construyendo una casa con bloques LEGO. Cada archivo es como una instrucción para una parte diferente de la casa:
+
+- **tarea_frontend.txt**: Las partes que las personas pueden ver y tocar en la tienda (como los productos, botones y el carrito)
+
+- **tarea_backend.txt**: La parte "mágica" detrás que hace funcionar todo (como guardar información de productos y usuarios)
+
+- **tarea_database.txt**: Donde guardamos toda la información (como una libreta grande donde anotamos todos los productos, clientes y pedidos)
+
+- **tarea_diseno.txt**: Cómo se ve nuestra tienda (colores, botones bonitos y cómo están organizadas las cosas)
+
+- **tarea_implementacion.txt**: Los pasos para construir la tienda en orden
+
+- **tarea_prioridades.txt**: Lo que debemos hacer primero, segundo y al final
+
+- **tarea_componentes.txt**: Las piezas pequeñas que juntas forman la tienda completa (como los bloques individuales de LEGO)
+
+## ¿Cómo todo trabaja junto?
+
+1. Primero hacemos el **Header** con el buscador grande en el centro
+2. Luego creamos las páginas para mostrar los productos
+3. Después hacemos el carrito de compras para que la gente pueda comprar
+4. Por último, agregamos cosas como el chat y los reportes
+
+Todo está ordenado para que podamos construir una parte, probarla, y luego seguir con la siguiente, ¡como cuando construyes un castillo de LEGO pieza por pieza! 
