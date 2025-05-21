@@ -1,64 +1,72 @@
-<script>
-	import { writable } from 'svelte/store';
+<script lang="ts">
 	import { createEventDispatcher } from 'svelte';
+	import { promptStore, actualizarEstadoPrompts } from '$lib/stores/promptStore.js';
 
 	const dispatch = createEventDispatcher();
 
-	// Store para los prompts personalizados
-	export const promptStore = writable({
-		currentMode: 'default',
-		prompts: {
-			default: {
-				name: 'Por defecto',
-				systemPrompt: `SISTEMA: Eres un experto analizador y diseñador de código.
-                
-                ESTRUCTURA DE RESPUESTA REQUERIDA:
-                1. EXPLICACIÓN
-                - Análisis claro y conciso del código
-                - Propósito y funcionamiento
-                - Contexto de implementación`,
-				active: true,
-			},
-			programmer: {
-				name: 'Programador Senior',
-				systemPrompt: `SISTEMA: Eres un programador senior con 15 años de experiencia.
-                Enfócate en patrones de diseño, optimización y mejores prácticas.`,
-				active: false,
-			},
-			teacher: {
-				name: 'Profesor de Programación',
-				systemPrompt: `SISTEMA: Eres un profesor de programación.
-                Explica detalladamente cada concepto y proporciona ejemplos didácticos.`,
-				active: false,
-			},
-		},
-	});
+	let nuevoNombrePrompt = '';
+	let nuevoContenidoPrompt = '';
+	let promptEnEdicion = null;
 
-	let newPromptName = '';
-	let newPromptContent = '';
-	let editingPrompt = null;
+	// Al cargar el componente, recuperar el prompt activo del localStorage
+	function consultarStorage() {
+		const promptActivo = localStorage.getItem('activePrompt');
+		if (promptActivo) {
+			$promptStore.currentMode = promptActivo; // Establecer el prompt activo
+			// Actualiza el estado de 'active' para todos los prompts
+			Object.keys($promptStore.prompts).forEach(k => {
+				$promptStore.prompts[k].active = k === promptActivo; // Marca el prompt activo
+			});
+		}
+	}
 
-	function addNewPrompt() {
-		if (!newPromptName || !newPromptContent) return;
+	// Llama a la función de consulta al abrir el modal
+	consultarStorage();
+
+	function agregarNuevoPrompt() {
+		if (!nuevoNombrePrompt || !nuevoContenidoPrompt) return;
 
 		$promptStore.prompts = {
 			...$promptStore.prompts,
-			[newPromptName.toLowerCase()]: {
-				name: newPromptName,
-				systemPrompt: newPromptContent,
+			[nuevoNombrePrompt.toLowerCase()]: {
+				name: nuevoNombrePrompt,
+				systemPrompt: nuevoContenidoPrompt,
 				active: false,
 			},
 		};
 
-		newPromptName = '';
-		newPromptContent = '';
+		nuevoNombrePrompt = '';
+		nuevoContenidoPrompt = '';
 	}
 
-	function setActivePrompt(key) {
+	function establecerPromptActivo(key) {
+		// Cambia el modo actual al prompt seleccionado
 		$promptStore.currentMode = key;
+
+		// Crear un objeto con el nuevo estado
+		const nuevoEstado = {};
 		Object.keys($promptStore.prompts).forEach(k => {
-			$promptStore.prompts[k].active = k === key;
+			nuevoEstado[k] = k === key; // true para el prompt activo, false para los demás
 		});
+
+		// Llama a la función para actualizar el estado de los prompts
+		const resultado = actualizarEstadoPrompts(nuevoEstado);
+
+		// Verificar el resultado y mostrar el mensaje en la consola
+		if (resultado.success) {
+			console.log('Estado actualizado con éxito:', resultado.prompts);
+		} else {
+			console.error('Error al actualizar el estado:', resultado.message);
+		}
+
+		// Guarda el prompt activo en localStorage
+		localStorage.setItem('activePrompt', key);
+
+		// Muestra un mensaje en la consola indicando que se ha guardado
+		console.log('Guardado en storage:', key);
+
+		// Muestra el estado actualizado de los prompts en la consola
+		console.log('Estado de los prompts:', JSON.stringify($promptStore.prompts, null, 2));
 	}
 </script>
 
@@ -73,15 +81,21 @@
 			<div class="prompt-item {prompt.active ? 'active' : ''}">
 				<div class="prompt-header">
 					<h3>{prompt.name}</h3>
-					<button class="activate-btn" on:click={() => setActivePrompt(key)}>
+					<button
+						class="activate-btn {prompt.active ? 'active' : ''}"
+						on:click={() => establecerPromptActivo(key)}
+					>
 						{prompt.active ? '✓ Activo' : 'Activar'}
 					</button>
+					<button class="save-btn">Guardar</button>
 				</div>
 				<div class="prompt-content">
 					<textarea
 						value={prompt.systemPrompt}
 						on:input={e => {
-							$promptStore.prompts[key].systemPrompt = e.target.value;
+							if (e.target) {
+								$promptStore.prompts[key].systemPrompt = (e.target as HTMLTextAreaElement).value;
+							}
 						}}
 					/>
 				</div>
@@ -91,9 +105,9 @@
 
 	<div class="add-new-prompt">
 		<h3>Agregar Nuevo Prompt</h3>
-		<input type="text" placeholder="Nombre del prompt" bind:value={newPromptName} />
-		<textarea placeholder="Contenido del prompt..." bind:value={newPromptContent} />
-		<button on:click={addNewPrompt}>Agregar Prompt</button>
+		<input type="text" placeholder="Nombre del prompt" bind:value={nuevoNombrePrompt} />
+		<textarea placeholder="Contenido del prompt..." bind:value={nuevoContenidoPrompt} />
+		<button on:click={agregarNuevoPrompt}>Agregar Prompt</button>
 	</div>
 </div>
 
@@ -202,5 +216,38 @@
 		border: 1px solid var(--border-color);
 		border-radius: 4px;
 		color: var(--primary-text);
+	}
+
+	.activate-btn {
+		background: rgba(14, 39, 129, 0.636); /* Color rojo para el botón "Activar" */
+		border: none;
+		padding: 8px 16px;
+		border-radius: 4px;
+		color: white;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		margin-right: -70px; /* Espaciado a la derecha para separar del botón "Guardar" */
+	}
+
+	.activate-btn:hover {
+		background: #006400; /* Color verde oscuro al pasar el mouse */
+	}
+
+	.activate-btn.active {
+		background: #006400; /* Color verde oscuro cuando está activado */
+	}
+
+	.save-btn {
+		background: #006400; /* Color verde oscuro para el botón "Guardar" */
+		border: none;
+		padding: 8px 16px;
+		border-radius: 4px;
+		color: white;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	.save-btn:hover {
+		background: #004d00; /* Color más oscuro al pasar el mouse */
 	}
 </style>

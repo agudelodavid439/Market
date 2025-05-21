@@ -9,12 +9,6 @@
 	--foreground: #2f2d2d;
 }
 
-/* Estilo para el texto de las celdas */
-td,
-th {
-	color: #2f4f4f; /* Negro seda */
-}
-
 /* ANCHOR - Configuración de tema para una visualización perfecta */
 
 /* ANCHOR - Aplicamos el estilo base a todo tu contenido */
@@ -46,4 +40,30 @@ body {
 			0 2px 4px -2px rgb(0 0 0 / 0.1);
 		padding: 1rem;
 	}
+}
+
+/* Estilos globales para productos en carrito */
+:global(.nombre-producto) {
+	white-space: normal !important;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box !important;
+	-webkit-line-clamp: 2 !important;
+	-webkit-box-orient: vertical;
+	line-height: 1.2;
+	max-width: 100%;
+}
+
+:global(.item-carrito) {
+	align-items: flex-start !important;
+	min-height: 68px !important;
+}
+
+:global(.producto-container) {
+	align-items: flex-start !important;
+}
+
+:global(.control-cantidad) {
+	flex-shrink: 0 !important;
+	width: 60px !important;
 }

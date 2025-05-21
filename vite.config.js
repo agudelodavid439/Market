@@ -8,10 +8,7 @@ export default defineConfig({
 	resolve: {
 		alias: {
 			$lib: resolve('./src/lib'),
-			// Añadir alias para que las importaciones de .js apunten a los archivos .ts
-			'$lib/conexion_pedidos.js': '$lib/conexion_pedidos.ts',
 		},
-		extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.svelte'],
 	},
 
 	// Configuración básica para el servidor de desarrollo

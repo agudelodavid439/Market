@@ -1,455 +1,298 @@
 <script lang="ts">
-	import { productosEnCarrito } from '$lib/stores/carritoTienda';
-	export let formularioVisible: boolean;
+	import { carritoVisible } from '$lib/stores/carritoTienda';
+	import { fade, scale } from 'svelte/transition';
+	import { onMount } from 'svelte';
+
+	// Props que necesitamos recibir del componente padre
 	export let toggleFormulario: () => void;
-
-	let formData = {
-		nombre: '',
-		celular: '',
-		direccion: '',
-		metodoPago: '',
+	export let formData: {
+		nombre: string;
+		celular: string;
+		direccion: string;
+		metodoPago: string;
 	};
+	export let handleFormChange: (e: Event) => void;
+	export let handleSubmit: (e: Event) => void;
+	// Nuevo prop para recibir el resultado del pedido
+	export let resultadoPedido: {
+		exito: boolean;
+		numeroOrden?: string;
+		mensaje?: string;
+	} | null = null;
 
-	let metodoPagoAbierto = false;
-	const toggleMetodoPago = () => {
-		metodoPagoAbierto = !metodoPagoAbierto;
-	};
+	let mostrarFinalizarPedido = false;
 
-	function handleFormChange(e: Event) {
-		const target = e.target as HTMLInputElement;
-		formData[target.name as keyof typeof formData] = target.value;
+	// Añadir log cuando resultadoPedido cambia
+	$: if (resultadoPedido) {
+		console.log('Formulario recibió resultadoPedido:', resultadoPedido);
 	}
 
-	function selectMetodoPago(metodo: string) {
-		formData.metodoPago = metodo;
-		metodoPagoAbierto = false;
-	}
-
-	function handleSubmit(e: Event) {
-		e.preventDefault();
-
-		const formValues = {
-			nombre: formData.nombre.trim(),
-			celular: formData.celular.trim(),
-			direccion: formData.direccion.trim(),
-			metodoPago: formData.metodoPago,
-		};
-
-		if (!formValues.nombre || !formValues.celular || !formValues.direccion) {
-			alert('Por favor completa todos los campos obligatorios.');
+	// Función optimizada para obtener la ubicación actual
+	async function obtenerUbicacionActual() {
+		if (!navigator.geolocation) {
+			alert('Tu navegador no soporta geolocalización');
 			return;
 		}
 
-		const submitData = {
-			pedido: {
-				numero_orden: `ORD${Date.now()}`,
-				nombre_cliente: formValues.nombre,
-				telefono: formValues.celular,
-				direccion: formValues.direccion,
-				metodo_pago: formValues.metodoPago,
-				estado: 'pendiente',
-				cantidad_productos: 0,
-			},
-			items: $productosEnCarrito,
-		};
+		try {
+			// Mostrar que se está cargando la ubicación
+			formData.direccion = 'Obteniendo ubicación...';
 
-		console.log('Datos del pedido:', submitData);
+			// Obtener coordenadas
+			const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+				navigator.geolocation.getCurrentPosition(resolve, reject, {
+					enableHighAccuracy: true,
+					timeout: 10000,
+				});
+			});
+
+			const { latitude, longitude } = position.coords;
+
+			// Intentar obtener la dirección de las coordenadas mediante Geocoding API
+			try {
+				const response = await fetch(
+					`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+				);
+				const data = await response.json();
+
+				if (data && data.display_name) {
+					// Usar una versión más corta y útil de la dirección
+					const direccionFormateada = data.address
+						? `${data.address.road || ''} ${data.address.house_number || ''}, ${data.address.suburb || data.address.neighbourhood || ''}`
+						: data.display_name.split(',').slice(0, 3).join(',');
+
+					formData.direccion = direccionFormateada.trim();
+				} else {
+					// Si no se puede obtener la dirección, usar las coordenadas
+					formData.direccion = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+				}
+			} catch (error) {
+				// Si falla el geocoding, usar coordenadas
+				formData.direccion = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+			}
+		} catch (error) {
+			// Si el usuario rechaza dar su ubicación o hay otro error
+			formData.direccion = '';
+			alert('No se pudo obtener tu ubicación. Por favor ingresa tu dirección manualmente.');
+		}
 	}
 </script>
 
-<div class="contenedor-formulario" class:expandido={formularioVisible}>
-	{#if formularioVisible}
-		<form class="formulario-pago" on:submit={handleSubmit}>
-			<div class="header-formulario">
+{#if resultadoPedido && resultadoPedido.exito}
+	<div class="mensaje-exito-container" transition:fade>
+		<div class="mensaje-exito" transition:scale={{ duration: 300 }}>
+			<div class="icono-exito">
 				<svg
+					xmlns="http://www.w3.org/2000/svg"
 					viewBox="0 0 24 24"
-					width="24"
-					height="24"
 					fill="none"
 					stroke="currentColor"
 					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
 				>
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						d="M9 2h6a2 2 0 0 1 2 2v16l-3-2-3 2-3-2-3 2V4a2 2 0 0 1 2-2zM9 7h6M9 11h6M9 15h4"
-					/>
+					<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+					<polyline points="22 4 12 14.01 9 11.01"></polyline>
 				</svg>
-
-				<h4>Datos de Envío</h4>
-
-				<button type="button" class="cerrar-formulario" on:click={toggleFormulario}>
-					<svg
-						viewBox="0 0 24 24"
-						width="24"
-						height="24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-					>
-						<path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" />
-					</svg>
-				</button>
 			</div>
+			<h2>¡Pedido Confirmado con Éxito!</h2>
+			<div class="detalles-pedido">
+				<p class="numero-orden">Número de Orden: <strong>{resultadoPedido.numeroOrden}</strong></p>
+				<p class="mensaje-confirmacion">
+					{resultadoPedido.mensaje}
+				</p>
+				<p class="agradecimiento">¡Gracias por confiar en nosotros!</p>
+			</div>
+			<!-- Botón para cerrar manualmente el mensaje -->
+			<button class="cerrar-mensaje-btn" on:click={() => carritoVisible.set(false)}>
+				Cerrar
+			</button>
+		</div>
+	</div>
+{:else}
+	<div class="contenedor-formulario expandido">
+		<form class="formulario-pago" on:submit|preventDefault={handleSubmit}>
+			<div class="header-formulario">
+				<!-- El icono y el título juntos en un contenedor -->
+				<div class="header-left">
+					<i class="mdi mdi-package-variant-closed mdi-24px"></i>
+					<h4>Datos de Envío</h4>
+				</div>
+				<!-- Botón de cerrar separado a la derecha -->
+				<button
+					type="button"
+					class="cerrar-formulario"
+					on:click={toggleFormulario}
+					aria-label="Cerrar formulario">✕</button
+				>
+			</div>
+
+			<!-- Mostrar mensajes de error si existen -->
+			{#if resultadoPedido && !resultadoPedido.exito && resultadoPedido.mensaje}
+				<div class="mensaje-error">
+					{resultadoPedido.mensaje}
+				</div>
+			{/if}
+
 			<div class="campos-formulario">
 				<div class="campo-con-icono">
-					<div class="icono">
-						<svg
-							viewBox="0 0 24 24"
-							width="20"
-							height="20"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-						>
-							<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-							<circle cx="12" cy="7" r="4" />
-						</svg>
-					</div>
+					<i class="mdi mdi-account mdi-24px"></i>
 					<input
 						type="text"
 						name="nombre"
 						bind:value={formData.nombre}
 						on:input={handleFormChange}
-						placeholder="Nombre"
+						placeholder="Tu nombre"
 						required
-						style="color: black;"
 					/>
 				</div>
 
 				<div class="campo-con-icono">
-					<div class="icono">
-						<svg
-							viewBox="0 0 24 24"
-							width="20"
-							height="20"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-						>
-							<path
-								d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
-							/>
-						</svg>
-					</div>
+					<i class="mdi mdi-cellphone mdi-24px"></i>
 					<input
 						type="tel"
 						name="celular"
 						bind:value={formData.celular}
 						on:input={handleFormChange}
-						placeholder="Celular"
+						placeholder="Tu celular"
 						required
 					/>
 				</div>
 
 				<div class="campo-con-icono">
-					<div class="icono">
-						<svg
-							viewBox="0 0 24 24"
-							width="20"
-							height="20"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-						>
-							<path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" />
-							<circle cx="12" cy="10" r="3" />
-						</svg>
-					</div>
+					<i class="mdi mdi-map-marker mdi-24px"></i>
 					<input
 						type="text"
 						name="direccion"
 						bind:value={formData.direccion}
-						placeholder="Dirección de Envío"
+						on:input={handleFormChange}
+						placeholder="Dirección de entrega"
 						required
 					/>
+					<div class="contenedor-tooltip">
+						<button
+							type="button"
+							class="boton-ubicacion"
+							on:click={obtenerUbicacionActual}
+							aria-label="Obtener ubicación actual"
+						>
+							<i class="mdi mdi-crosshairs-gps"></i>
+						</button>
+						<span class="tooltip">Agregar ubicación actual</span>
+					</div>
 				</div>
 
-				<div class="campo-con-icono metodo-pago-container">
-					<div class="icono">
-						<svg
-							viewBox="0 0 24 24"
-							width="20"
-							height="20"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-						>
-							<rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
-							<line x1="1" y1="10" x2="23" y2="10" />
-						</svg>
-					</div>
-					<div class="metodo-pago-selector" on:click={toggleMetodoPago}>
-						<span class="metodo-pago-placeholder">
-							{formData.metodoPago
-								? formData.metodoPago.charAt(0).toUpperCase() + formData.metodoPago.slice(1)
-								: 'Método de pago'}
-						</span>
-						<svg
-							class="dropdown-icon"
-							class:activo={metodoPagoAbierto}
-							viewBox="0 0 24 24"
-							width="18"
-							height="18"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-						>
-							<polyline points="6 9 12 15 18 9" />
-						</svg>
-					</div>
-
-					{#if metodoPagoAbierto}
-						<div class="opciones-metodo-pago">
-							<div class="opciones-scroll">
-								<div class="opcion-metodo" on:click={() => selectMetodoPago('efectivo')}>
-									<svg
-										viewBox="0 0 24 24"
-										width="18"
-										height="18"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-									>
-										<rect x="2" y="4" width="20" height="16" rx="2" />
-										<line x1="12" y1="4" x2="12" y2="20" />
-									</svg>
-									<span>Efectivo</span>
-								</div>
-								<div class="opcion-metodo" on:click={() => selectMetodoPago('datafono')}>
-									<svg
-										viewBox="0 0 24 24"
-										width="18"
-										height="18"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-									>
-										<rect x="4" y="4" width="16" height="12" rx="2" />
-										<line x1="4" y1="12" x2="20" y2="12" />
-										<line x1="12" y1="18" x2="12" y2="22" />
-										<line x1="8" y1="22" x2="16" y2="22" />
-									</svg>
-									<span>Datafono</span>
-								</div>
-								<div class="opcion-metodo" on:click={() => selectMetodoPago('nequi')}>
-									<svg
-										viewBox="0 0 24 24"
-										width="18"
-										height="18"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-									>
-										<rect x="5" y="2" width="14" height="20" rx="2" />
-										<circle cx="12" cy="18" r="1" />
-										<line x1="8" y1="6" x2="16" y2="6" />
-									</svg>
-									<span>Nequi</span>
-								</div>
-								<div class="opcion-metodo" on:click={() => selectMetodoPago('daviplata')}>
-									<svg
-										viewBox="0 0 24 24"
-										width="18"
-										height="18"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-									>
-										<path
-											d="M5 5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5z"
-										/>
-										<path d="M12 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" />
-										<path d="M8 8h8" />
-									</svg>
-									<span>Daviplata</span>
-								</div>
-								<div class="opcion-metodo" on:click={() => selectMetodoPago('bancolombia')}>
-									<svg
-										viewBox="0 0 24 24"
-										width="18"
-										height="18"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-									>
-										<rect x="3" y="3" width="18" height="18" rx="2" />
-										<path d="M8 7h8M8 12h8M8 17h5" />
-									</svg>
-									<span>Bancolombia</span>
-								</div>
-								<div class="opcion-metodo" on:click={() => selectMetodoPago('paypal')}>
-									<svg
-										viewBox="0 0 24 24"
-										width="18"
-										height="18"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-									>
-										<path d="M7 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />
-										<path d="M17 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" />
-									</svg>
-									<span>Paypal</span>
-								</div>
-								<div class="opcion-metodo" on:click={() => selectMetodoPago('stripe')}>
-									<svg
-										viewBox="0 0 24 24"
-										width="18"
-										height="18"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-									>
-										<path d="M2 12 L22 12" />
-										<path d="M6 8 L18 8" />
-										<path d="M6 16 L18 16" />
-									</svg>
-									<span>Stripe</span>
-								</div>
-								<div class="opcion-metodo" on:click={() => selectMetodoPago('tarjeta')}>
-									<svg
-										viewBox="0 0 24 24"
-										width="18"
-										height="18"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-									>
-										<rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
-										<line x1="1" y1="10" x2="23" y2="10" />
-									</svg>
-									<span>Tarjeta</span>
-								</div>
-								<div class="opcion-metodo" on:click={() => selectMetodoPago('transferencia')}>
-									<svg
-										viewBox="0 0 24 24"
-										width="18"
-										height="18"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-									>
-										<path d="M8 3v3a2 2 0 0 1-2 2H3" />
-										<path d="M16 21v-3a2 2 0 0 1 2-2h3" />
-										<path d="M21 8h-3a2 2 0 0 1-2-2V3" />
-										<path d="M3 16h3a2 2 0 0 1 2 2v3" />
-										<line x1="16" y1="8" x2="8" y2="16" />
-									</svg>
-									<span>Transferencia</span>
-								</div>
-							</div>
-						</div>
-					{/if}
+				<div class="campo-con-icono">
+					<i class="mdi mdi-credit-card mdi-24px"></i>
+					<select
+						name="metodoPago"
+						bind:value={formData.metodoPago}
+						on:change={handleFormChange}
+						required
+					>
+						<option value="">Método de pago</option>
+						<option value="efectivo">Efectivo</option>
+						<option value="datafono">Datafono</option>
+						<option value="nequi">Nequi</option>
+						<option value="daviplata">Daviplata</option>
+						<option value="bancolombia">Bancolombia</option>
+						<option value="bbva">BBVA</option>
+						<option value="tarjeta">Tarjeta</option>
+					</select>
 				</div>
 			</div>
-
-			<div class="footer-formulario">
-				<button type="submit" class="boton-finalizar">
-					<svg
-						viewBox="0 0 24 24"
-						width="20"
-						height="20"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					>
-						<path d="M5 12h14" />
-						<path d="M12 5l7 7-7 7" />
-					</svg>
-					<span>Finalizar</span>
+			<div class="contenedor-boton">
+				<button type="submit" class="boton-confirmar">
+					<i class="mdi mdi-check-circle-outline mdi-24px"></i>
+					<span>Finalizar Compra</span>
 				</button>
 			</div>
 		</form>
-	{/if}
-</div>
+	</div>
+{/if}
+
+<!-- Cargar íconos de Material Design -->
+<svelte:head>
+	<link
+		href="https://cdn.jsdelivr.net/npm/@mdi/font@6.5.95/css/materialdesignicons.min.css"
+		rel="stylesheet"
+	/>
+</svelte:head>
 
 <style>
 	.contenedor-formulario {
-		position: absolute;
-		bottom: 0;
-		left: 0;
-		right: 0;
-		background: linear-gradient(90deg, #0a2342, #18386b);
-		max-height: 0;
-		overflow: hidden;
-		transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+		height: auto;
+		min-height: 100%;
+		width: 100%;
+		background-color: white;
+		display: flex;
+		flex-direction: column;
 		border-radius: 12px;
-		box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
-		z-index: 10;
+		overflow: visible;
+		position: relative;
 	}
 
 	.contenedor-formulario.expandido {
-		max-height: calc(100% - 80px);
-		transform: translateY(-20px);
-		display: flex;
-		flex-direction: column;
+		position: relative;
+		transform: none;
+		height: auto;
 	}
 
 	.formulario-pago {
 		display: flex;
 		flex-direction: column;
-		height: 100%;
-		position: relative;
-		/* Eliminado el overflow:hidden para permitir que se vea el botón */
+		height: auto;
+		min-height: 100%;
+		overflow: visible;
 	}
 
 	.header-formulario {
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		justify-content: flex-start;
-		padding: 1rem;
-		background: linear-gradient(180deg, #14213d 0%, #1e3a5f 30%, rgb(0, 0, 0) 60%, #0a1929 100%);
+		padding: 15px 20px;
+		background: linear-gradient(135deg, rgba(10, 25, 47, 1), rgba(30, 58, 95, 0.95));
 		color: white;
 		border-radius: 12px 12px 0 0;
-		width: 100%;
-		margin: -15px -15px 15px -15px;
-		padding: 15px 20px;
-		width: calc(100% + 30px);
-		box-sizing: border-box;
-		position: sticky;
-		top: 0;
-		z-index: 11;
+		position: relative;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
 	}
 
-	.header-formulario svg {
-		margin-right: 10px;
+	.header-left {
+		display: flex;
+		align-items: center;
+		gap: 10px;
 	}
 
 	.header-formulario h4 {
-		font-size: 1.5rem;
-		text-align: center;
+		margin: 0;
+		font-size: 1.1rem;
+		font-weight: bold;
 	}
 
-	.header-formulario .cerrar-formulario {
-		position: static;
-		margin-left: auto;
+	.header-formulario i {
+		color: white;
+	}
+
+	.cerrar-formulario {
 		background: none;
 		border: none;
 		color: white;
+		font-size: 1.4rem;
 		cursor: pointer;
-		padding: 5px;
-		opacity: 0.9;
+		line-height: 1;
 		transition: all 0.2s ease;
-		display: flex;
-		align-items: center;
-		justify-content: center;
+		padding: 5px 10px;
+		border-radius: 50%;
+		position: absolute;
+		right: 10px;
+		top: 50%;
+		transform: translateY(-50%);
+		z-index: 12;
 	}
 
 	.cerrar-formulario:hover {
-		color: #e0e0e0;
-		transform: scale(1.1);
+		background-color: rgba(255, 255, 255, 0.1);
+		transform: translateY(-50%) scale(1.1);
 	}
 
 	.campos-formulario {
@@ -458,228 +301,305 @@
 		overflow-x: hidden;
 		padding: 1rem;
 		scrollbar-width: thin;
-		scrollbar-color: #123986 #f0f0f0;
+		scrollbar-color: #0a4d68 #f0f0f0;
 		-webkit-overflow-scrolling: touch;
-		max-height: calc(100vh - 150px); /* Ajustado para mejor visibilidad */
-		padding-bottom: 2rem; /* Añadido más espacio en la parte inferior */
-	}
-
-	.campos-formulario::-webkit-scrollbar {
-		width: 6px;
-	}
-
-	.campos-formulario::-webkit-scrollbar-track {
-		background: #e1dddd;
-	}
-
-	.campos-formulario::-webkit-scrollbar-thumb {
-		border-radius: 6px;
+		height: auto;
+		min-height: 200px;
 	}
 
 	.campo-con-icono {
 		display: flex;
 		align-items: center;
 		gap: 1rem;
-		background: #e1dddd;
+		background: white;
 		padding: 0.8rem;
 		border-radius: 8px;
 		margin-bottom: 1rem;
 		transition: all 0.2s ease;
+		border: 1px solid rgba(0, 0, 0, 0.1);
 		position: relative;
 	}
 
 	.campo-con-icono:hover {
-		background: #f0f0f0;
+		background: #f9f9f9;
 		transform: translateY(-1px);
 	}
 
-	.icono {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		min-width: 40px;
+	.campo-con-icono i {
 		color: #2ecc71;
+		font-size: 1.5rem;
 	}
 
-	.campo-con-icono input {
+	.campo-con-icono input,
+	.campo-con-icono select {
 		flex: 1;
 		border: none;
 		background: transparent;
 		padding: 0.5rem;
 		font-size: 1rem;
 		outline: none;
-		color: #494848;
+		color: #333333;
 	}
 
-	.campo-con-icono input::placeholder {
-		color: #807e7e;
+	.campo-con-icono input::placeholder,
+	.campo-con-icono select::placeholder {
+		color: #95a5a6;
 	}
 
-	/* Nuevo estilo para el selector de método de pago */
-	.metodo-pago-container {
-		position: relative;
-	}
-
-	.metodo-pago-selector {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		flex: 1;
-		cursor: pointer;
-		padding: 0.5rem;
-		font-size: 1rem;
-		color: #201f1f;
-	}
-
-	.metodo-pago-placeholder {
-		color: #201f1f;
-	}
-
-	.dropdown-icon {
-		transition: transform 0.3s ease;
-	}
-
-	.dropdown-icon.activo {
-		transform: rotate(180deg);
-	}
-
-	.opciones-metodo-pago {
+	.contenedor-tooltip {
 		position: absolute;
-		top: 100%;
-		left: 0;
-		right: 0;
-		background: white;
-		border-radius: 0 0 8px 8px;
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-		z-index: 12;
-		max-height: 0;
-		animation: expandir 0.3s forwards;
-		overflow: hidden;
+		right: 10px;
+		top: 50%;
+		transform: translateY(-50%);
 	}
 
-	@keyframes expandir {
-		to {
-			max-height: 300px;
-		}
-	}
-
-	.opciones-scroll {
-		max-height: 250px;
-		overflow-y: auto;
-		padding: 0.5rem;
-		scrollbar-width: thin;
-		scrollbar-color: #0a4d68 #f0f0f0;
-	}
-
-	.opciones-scroll::-webkit-scrollbar {
-		width: 4px;
-	}
-
-	.opciones-scroll::-webkit-scrollbar-track {
-		background: #f0f0f0;
-	}
-
-	.opciones-scroll::-webkit-scrollbar-thumb {
-		background-color: #0a4d68;
-		border-radius: 4px;
-	}
-
-	.opcion-metodo {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.7rem;
-		cursor: pointer;
-		transition: background 0.2s;
-		border-radius: 4px;
-	}
-
-	.opcion-metodo:hover {
-		background: #f0f0f0;
-	}
-
-	.opcion-metodo svg {
-		color: #2ecc71;
-	}
-
-	/* Footer y botón finalizar */
-	.footer-formulario {
-		position: sticky; /* Cambiado de absolute a sticky */
-		bottom: 0;
-		left: 0;
-		right: 0;
-		display: flex;
-		justify-content: center;
-		padding: 1rem;
-		background: linear-gradient(90deg, #0a2342, #18386b);
-		border-top: 1px solid rgba(255, 255, 255, 0.1);
-		z-index: 20; /* Incrementado para asegurar que esté encima de todo */
-		margin-top: auto; /* Hace que se pegue al fondo del contenedor */
-	}
-
-	.boton-finalizar {
-		width: auto;
-		min-width: 150px;
-		padding: 0.75rem 1.5rem;
-		background-color: #2e8b57;
+	.boton-ubicacion {
+		padding: 6px;
+		background-color: #2ecc71;
 		color: white;
 		border: none;
-		border-radius: 15px;
+		border-radius: 6px;
+		cursor: pointer;
+		width: 32px;
+		height: 32px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: all 0.2s ease;
+	}
+
+	.boton-ubicacion:hover {
+		background-color: #27ae60;
+		transform: scale(1.05);
+	}
+
+	.boton-ubicacion i {
 		font-size: 1.2rem;
-		font-weight: 500;
+		color: white;
+	}
+
+	.tooltip {
+		visibility: hidden;
+		position: absolute;
+		background-color: #333;
+		color: white;
+		text-align: center;
+		padding: 5px 10px;
+		border-radius: 6px;
+		z-index: 1;
+		opacity: 0;
+		transition: opacity 0.3s;
+		white-space: nowrap;
+		font-size: 0.8rem;
+		bottom: 125%;
+		left: 50%;
+		transform: translateX(-50%);
+	}
+
+	.contenedor-tooltip:hover .tooltip {
+		visibility: visible;
+		opacity: 1;
+	}
+
+	.contenedor-boton {
+		padding: 10px 16px 16px;
+		background: linear-gradient(to bottom, transparent, #f7f7f7 30%);
+		position: sticky;
+		bottom: 0;
+		z-index: 11;
+	}
+
+	.boton-confirmar {
+		width: 100%;
+		padding: 14px;
+		background: linear-gradient(135deg, #2ecc71, #27ae60);
+		color: white;
+		border: none;
+		border-radius: 12px;
+		font-size: 1.1rem;
+		font-weight: 600;
 		cursor: pointer;
 		transition: all 0.3s ease;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 0.5rem;
-		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+		gap: 10px;
+		box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
 	}
 
-	.boton-finalizar:hover {
-		background: #27ae60;
+	.boton-confirmar:hover {
+		background: linear-gradient(135deg, #27ae60, #219653);
 		transform: translateY(-2px);
-		box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+		box-shadow: 0 6px 15px rgba(46, 204, 113, 0.4);
 	}
 
-	.boton-finalizar:active {
-		transform: translateY(0);
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	.boton-confirmar i {
+		font-size: 1.3rem;
+	}
+
+	.mensaje-exito-container {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(255, 255, 255, 0.98);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		z-index: 1000;
+	}
+
+	.mensaje-exito {
+		text-align: center;
+		padding: 2.5rem;
+		background: white;
+		border-radius: 12px;
+		box-shadow:
+			0 4px 6px rgba(0, 0, 0, 0.1),
+			0 1px 3px rgba(0, 0, 0, 0.08);
+		max-width: 500px;
+		width: 90%;
+		animation: slideIn 0.5s ease-out;
+		position: relative;
+		padding-bottom: 4rem;
+	}
+
+	.icono-exito {
+		width: 80px;
+		height: 80px;
+		margin: 0 auto 1.5rem;
+		color: #10b981;
+		animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+	}
+
+	.mensaje-exito h2 {
+		color: #1f2937;
+		margin-bottom: 1.5rem;
+		font-size: 1.75rem;
+		font-weight: 600;
+	}
+
+	.detalles-pedido {
+		text-align: left;
+		padding: 1rem;
+		background: #f3f4f6;
+		border-radius: 8px;
+		margin: 1rem 0;
+	}
+
+	.numero-orden {
+		font-size: 1.1rem;
+		color: #374151;
+		margin-bottom: 1rem;
+		padding-bottom: 1rem;
+		border-bottom: 1px solid #e5e7eb;
+	}
+
+	.mensaje-confirmacion {
+		color: #4b5563;
+		line-height: 1.6;
+		margin-bottom: 1rem;
+	}
+
+	.agradecimiento {
+		color: #10b981;
+		font-weight: 500;
+		text-align: center;
+		margin-top: 1rem;
+	}
+
+	.cerrar-mensaje-btn {
+		position: absolute;
+		bottom: 1.5rem;
+		left: 50%;
+		transform: translateX(-50%);
+		padding: 10px 24px;
+		background: #1f2937;
+		color: white;
+		border: none;
+		border-radius: 6px;
+		font-size: 0.95rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+	}
+
+	.cerrar-mensaje-btn:hover {
+		background: #374151;
+		transform: translateX(-50%) translateY(-2px);
+		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+	}
+
+	.mensaje-error {
+		background-color: #fee2e2;
+		color: #b91c1c;
+		padding: 10px 15px;
+		margin: 0 16px 16px;
+		border-radius: 6px;
+		font-size: 0.95rem;
+		border-left: 4px solid #ef4444;
+	}
+
+	@keyframes slideIn {
+		from {
+			transform: translateY(-20px);
+			opacity: 0;
+		}
+		to {
+			transform: translateY(0);
+			opacity: 1;
+		}
+	}
+
+	@keyframes bounceIn {
+		0% {
+			transform: scale(0);
+		}
+		50% {
+			transform: scale(1.2);
+			opacity: 1;
+		}
+		100% {
+			transform: scale(1);
+		}
 	}
 
 	@media (max-width: 480px) {
 		.contenedor-formulario.expandido {
-			max-height: 90vh;
-			height: 90vh;
-			position: fixed;
-			top: 5vh;
-			transform: none;
+			height: auto;
+			min-height: 100vh;
+			border-radius: 12px 12px 0 0;
+			overflow: visible;
 		}
 
 		.campos-formulario {
-			padding: 1rem;
-			-webkit-overflow-scrolling: touch;
-			max-height: calc(100vh - 200px);
+			padding: 0.75rem;
+			height: auto;
+			min-height: calc(100vh - 140px);
+			overflow-y: auto;
+			margin-bottom: 60px;
 		}
 
-		.header-formulario {
-			position: sticky;
-			top: 0;
-			margin: 0;
-			border-radius: 0;
+		.boton-confirmar {
+			padding: 16px;
+			border-radius: 10px;
+			font-size: 1.15rem;
 		}
 
-		.footer-formulario {
-			position: sticky; /* Mantiene la consistencia con la versión de PC */
+		.contenedor-boton {
+			padding: 10px 12px;
+			position: fixed;
 			bottom: 0;
 			left: 0;
 			right: 0;
+			background: white;
+			box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
 		}
-	}
-	/* Hacer siempre visible el scrollbar en PC */
-	@media (min-width: 481px) {
-		.campos-formulario {
-			overflow-y: scroll;
+
+		.campo-con-icono:last-child {
+			margin-bottom: 0;
 		}
 	}
 </style>

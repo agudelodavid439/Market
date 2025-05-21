@@ -1,6 +1,7 @@
 <script>
 	import { createEventDispatcher } from 'svelte';
-	import ChatIA from './chat_Ai.svelte';
+	import ChatIA from './chat_contadores.svelte';
+	import ChatContadores from './chat_contadores.svelte';
 
 	const dispatch = createEventDispatcher();
 	export let estaAbierto = false; // Añadimos valor por defecto
@@ -26,7 +27,7 @@
 				<!-- Columna 2 (más ancha) -->
 				<div class="columna columna-central">
 					<button class="boton-cerrar" on:click={cerrarModal}>×</button>
-					<ChatIA />
+					<ChatContadores />
 				</div>
 
 				<!-- Columna 3 -->

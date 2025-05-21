@@ -1,0 +1,37 @@
+Analiza en profundidad la imagen de la interfaz de e-commerce y modifica el componente secion_body.svelte para crear una experiencia similar pero con una apariencia moderna y profesional.
+
+La personalización debe incluir:
+
+1. ESTRUCTURA VISUAL:
+   - Layout horizontal con tarjetas de productos que se puedan desplazar horizontalmente
+   - Cada tarjeta debe tener una imagen destacada en la parte superior
+   - Información del producto claramente organizada debajo de la imagen
+   - Etiquetas de descuento prominentes como se muestra en la imagen (ej. "-33%", "-20%", "-40%")
+
+2. ELEMENTOS DE DISEÑO:
+   - Utiliza una paleta de colores que incluya blanco para fondos, verde esmeralda (#2e8b57) para botones principales y acentos
+   - Diseña botones circulares con iconos para acciones rápidas
+   - Aplica sombras sutiles para dar profundidad a las tarjetas
+   - Incluye etiquetas de disponibilidad ("Disponible" en verde)
+   - Muestra el precio original tachado junto al precio con descuento
+
+3. INTERACTIVIDAD:
+   - Botones con efecto hover que cambian sutilmente (escala ligeramente mayor)
+   - Animación suave cuando se agrega un producto al carrito
+   - Notificación visual cuando un producto se añade al carrito
+   - Contador visible de productos en el carrito
+   - Efecto de transición cuando el ratón pasa sobre las tarjetas de productos
+
+4. ESTILO ESPECÍFICO DE BOTONES:
+   - Todos los botones principales deben usar el color verde (#2e8b57) con texto blanco
+   - Los botones secundarios deben tener un diseño más sutil con bordes verdes y fondo transparente
+   - Botón "Pedir" debe tener un icono de carrito y texto claro
+   - Incluye botones circulares flotantes como se muestra en la imagen de referencia
+
+5. CARACTERÍSTICAS ADICIONALES:
+   - Implementa un sistema de categorías en la parte superior con pestañas similares a las que se ven en la imagen ("Platos especiales", "Bebidas", "Postres")
+   - Incluye indicadores de precio con formato de moneda local
+   - Agrega descripciones concisas para cada producto
+   - Implementa indicadores de descuento prominentes similar a la imagen (-20%, -33%, etc.)
+
+Mantén la funcionalidad existente de filtrado y agregado al carrito, pero mejora la presentación visual siguiendo el estilo de la imagen de referencia, adaptando los elementos para que se integren con el tema de licores del sitio actual.

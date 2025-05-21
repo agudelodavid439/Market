@@ -6,9 +6,20 @@
 	import { obtenerCategorias } from '$lib/conexion_pedidos';
 	import type { Producto } from '$lib/conexion_products';
 	import Carrito from '$lib/sesion_carrito/carrito.svelte';
-	import { searchTerm } from '$lib/estadoGlobal.js';
 
 	import { productosEnCarrito, carritoVisible, toggleCarrito } from '$lib/stores/carritoTienda';
+	import { terminoBusqueda } from '$lib/stores/buscadorStore';
+
+	export type Producto = {
+		col_nombre: string;
+		col_tipo: string;
+		col_precio_domicilio11: number;
+		col_stock: number;
+		col_imagen?: string;
+		col_descripcion?: string;
+		col_descuento_precio?: number; // Added the missing property
+		col_cupon_descuento?: string; // Añadir la nueva propiedad
+	};
 
 	let listaProductos: Producto[] = [];
 	let listaCategorias: string[] = [];
@@ -19,6 +30,9 @@
 	let cantidadProductos = 0;
 
 	const dispatch = createEventDispatcher();
+
+	// Objeto para rastrear los productos agregados al carrito
+	let productosAgregados: Record<string, boolean> = {};
 
 	onMount(async () => {
 		try {
@@ -32,7 +46,7 @@
 
 			listaProductos = respuestaProductos.data || [];
 			listaCategorias = respuestaCategorias.data || [];
-		} catch (err: any) {
+		} catch (err) {
 			mensajeError = 'Error al cargar los datos: ' + err.message;
 			console.error(err);
 		} finally {
@@ -49,8 +63,18 @@
 		}).format(precio);
 	}
 
+	function parseCurrencyString(currencyString: string): number {
+		if (!currencyString) return NaN;
+		// Eliminar símbolo de moneda, puntos de miles y espacios, luego convertir a número
+		const numberString = currencyString.replace(/[$. ]/g, '');
+		return parseInt(numberString, 10);
+	}
+
 	// Función única para agregar al carrito
 	async function agregarAlCarrito(producto: Producto) {
+		// Verifica si es el primer producto antes de añadirlo
+		const esPrimerProducto = $productosEnCarrito.length === 0;
+
 		productosEnCarrito.update(items => {
 			const existente = items.find(item => item.producto.col_nombre === producto.col_nombre);
 			if (existente) {
@@ -66,182 +90,271 @@
 		// Actualizar cantidad de productos en el carrito
 		cantidadProductos = $productosEnCarrito.reduce((total, item) => total + item.cantidad, 0);
 
-		// Mostrar el carrito
-		carritoVisible.set(true);
+		// Mostrar el carrito sólo si es el primer producto que se agrega
+		if (esPrimerProducto) {
+			carritoVisible.set(true);
+		}
 
-		// Mostrar notificación
-		const mensaje = document.createElement('div');
-		mensaje.textContent = '¡Producto añadido! 🛍️';
-		mensaje.style.cssText = `
-			position: fixed;
-			bottom: 20px;
-			right: 20px;
-			background: #4CAF50;
-			color: white;
-			padding: 1rem;
-			border-radius: 8px;
-			animation: fadeInOut 2s ease-in-out;
-			z-index: 1000;
-		`;
-		document.body.appendChild(mensaje);
-		setTimeout(() => mensaje.remove(), 2000);
+		// Marcar el producto como agregado
+		productosAgregados[producto.col_nombre] = true;
+
+		// Resetear el estado después de 1.5 segundos
+		setTimeout(() => {
+			productosAgregados[producto.col_nombre] = false;
+		}, 1500);
 	}
 
-	$: productosFiltrados = listaProductos.filter(producto => {
-		const categoriaCoincide = !categoriaSeleccionada || producto.col_tipo === categoriaSeleccionada;
-		const busquedaCoincide =
-			producto.col_nombre?.toLowerCase().includes($searchTerm) ||
-			producto.col_descripcion?.toLowerCase().includes($searchTerm);
-
-		return busquedaCoincide;
+	// Añadimos una nueva variable para los productos de la categoría actual
+	// sin el filtro de búsqueda aplicado
+	$: productosDeCategoriaActual = listaProductos.filter(producto => {
+		return !categoriaSeleccionada || producto.col_tipo === categoriaSeleccionada;
 	});
+
+	// Modificamos el filtro combinado para tener una referencia clara
+	// si la búsqueda no dio resultados pero hay productos en la categoría
+	$: productosFiltrados = listaProductos.filter(producto => {
+		const cumpleFiltroCategoria =
+			!categoriaSeleccionada || producto.col_tipo === categoriaSeleccionada;
+		const cumpleFiltroBusqueda =
+			!$terminoBusqueda ||
+			producto.col_nombre.toLowerCase().includes($terminoBusqueda.toLowerCase()) ||
+			(producto.col_descripcion?.toLowerCase() || '').includes($terminoBusqueda.toLowerCase()) ||
+			producto.col_tipo.toLowerCase().includes($terminoBusqueda.toLowerCase());
+
+		return cumpleFiltroCategoria && cumpleFiltroBusqueda;
+	});
+
+	// Variable para determinar si tenemos una búsqueda activa
+	$: busquedaActiva = !!$terminoBusqueda && $terminoBusqueda.trim() !== '';
 </script>
 
-<div class="contenedor-principal">
-	<div class="contenedor-catalogo">
-		<div class="seccion-cabecera">
-			<div class="barra-categorias">
-				<div class="flex">
-					<button
-						class="boton-categoria {!categoriaSeleccionada ? 'activo' : ''}"
-						on:click={() => (categoriaSeleccionada = null)}
-					>
-						Todos
-					</button>
-					{#each listaCategorias as categoria}
-						<button
-							class="boton-categoria {categoriaSeleccionada === categoria ? 'activo' : ''}"
-							on:click={() => (categoriaSeleccionada = categoria)}
-						>
-							{categoria}
-						</button>
-					{/each}
-				</div>
-			</div>
-		</div>
+<!-- La barra de categorías estará fuera del contenedor principal para posicionarla de manera fija -->
+<div class="menu-container">
+	<!-- Espaciador visible solo en móvil -->
+	<div class="spacer-mobile"></div>
 
-		<div class="cuadricula-productos-horizontal">
+	<div class="category-nav-container">
+		<div class="category-nav">
+			<button
+				class="category-btn {!categoriaSeleccionada ? 'active' : ''}"
+				on:click={() => (categoriaSeleccionada = null)}
+			>
+				Todos
+			</button>
+			{#each listaCategorias as categoria}
+				<button
+					class="category-btn {categoriaSeleccionada === categoria ? 'active' : ''}"
+					on:click={() => (categoriaSeleccionada = categoria)}
+				>
+					{categoria}
+				</button>
+			{/each}
+		</div>
+	</div>
+
+	<!-- Espaciador para compensar la altura de la barra de categorías fija -->
+	<div class="category-nav-spacer"></div>
+
+	<!-- Listado de productos -->
+	<div class="product-container">
+		<h2 class="section-title">{categoriaSeleccionada || 'Todos los productos'}</h2>
+
+		<!-- Nuevo contenedor grid que maneja la disposición en columnas -->
+		<div class="product-grid">
 			{#if estaCargando}
-				{#each Array(6) as _, i}
-					<div class="tarjeta-producto esqueleto-cargando" in:fade></div>
+				{#each Array(3) as _, i}
+					<div class="product-card esqueleto-cargando" in:fade></div>
 				{/each}
 			{:else if mensajeError}
-				<div class="col-span-full text-center text-lg text-red-400">
+				<div class="error-message">
 					{mensajeError}
 				</div>
 			{:else if productosFiltrados.length === 0}
-				<div class="col-span-full text-center text-lg text-gray-400">
-					{#if categoriaSeleccionada}
-						No hay productos en la categoría "{categoriaSeleccionada}" por ahora.
+				<!-- Mensaje de búsqueda sin resultados -->
+				<div class="empty-message">
+					{#if busquedaActiva}
+						<div class="no-results-search">
+							<div class="no-results-icon">
+								<i class="mdi mdi-magnify-close"></i>
+							</div>
+							<p class="no-results-title">
+								No se encontraron productos para "{$terminoBusqueda}"
+								{#if categoriaSeleccionada}
+									en la categoría "{categoriaSeleccionada}"
+								{/if}
+							</p>
+							<p class="no-results-subtitle">
+								Intenta con otros términos o revisa estos productos de la categoría:
+							</p>
+						</div>
+					{:else if categoriaSeleccionada}
+						<div class="empty-category">
+							No hay productos en la categoría "{categoriaSeleccionada}" por ahora.
+						</div>
 					{:else}
-						No hay productos disponibles.
+						<div class="empty-store">No hay productos disponibles.</div>
 					{/if}
 				</div>
-			{:else}
-				{#each productosFiltrados as producto, i}
-					<div
-						class="tarjeta-producto"
-						in:fly={{ y: 20, delay: i * 100 }}
-						on:mouseenter={() => (productoResaltado = i)}
-						on:mouseleave={() => (productoResaltado = null)}
-					>
-						<div class="contenedor-imagen-producto">
-							<img
-								src={producto.col_imagen || 'https://via.placeholder.com/400x300?text=Producto'}
-								alt={producto.col_nombre}
-								class="imagen-producto"
-								on:error={e => {
-									if (e.target) {
-										(e.target as HTMLImageElement).src =
-											'https://via.placeholder.com/400x300?text=Error+de+Imagen';
-									}
-								}}
-							/>
-							{#if producto.col_stock > 0}
-								<span class="etiqueta-stock stock-disponible"> Disponible </span>
-							{:else}
-								<span class="etiqueta-stock stock-agotado">Agotado</span>
-							{/if}
 
-							<div class="contenedor-boton-comprar">
-								<div class="carrito-container">
-									<button
-										class="boton-carrito-flotante"
-										disabled={!producto.col_stock || producto.col_stock <= 0}
-										on:click={() => toggleCarrito()}
-									>
-										<svg
-											viewBox="0 0 24 24"
-											class="icono-carrito"
-											fill="none"
-											stroke="currentColor"
-											stroke-width="2"
-										>
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												d="M9 2h6a2 2 0 0 1 2 2v16l-3-2-3 2-3-2-3 2V4a2 2 0 0 1 2-2z"
-											/>
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												d="M9 7h6M9 11h6M9 15h4"
-											/>
-										</svg>
+				<!-- Mostrar productos de la categoría seleccionada cuando la búsqueda no da resultados -->
+				{#if busquedaActiva && productosDeCategoriaActual.length > 0}
+					<div class="category-title-separator">
+						{#if categoriaSeleccionada}
+							<h3>Productos en {categoriaSeleccionada}</h3>
+						{:else}
+							<h3>Todos los productos disponibles</h3>
+						{/if}
+					</div>
 
-										{#if cantidadProductos > 0}
-											<span class="notificacion-carrito">{cantidadProductos}</span>
+					<!-- Mostrar todos los productos de la categoría actual -->
+					{#each productosDeCategoriaActual as producto, i}
+						<div class="product-card" in:fly={{ y: 20, delay: i * 50 }}>
+							<!-- Imagen del producto -->
+							<div class="product-img">
+								<!-- Lógica para mostrar la etiqueta de descuento basada en col_cupon_descuento -->
+								{#if producto.col_precio_domicilio11 && producto.col_cupon_descuento && producto.col_cupon_descuento.trim() !== ''}
+									{@const precioOriginal = producto.col_precio_domicilio11}
+									{@const precioCupon = parseCurrencyString(producto.col_cupon_descuento)}
+
+									<!-- Verificar que el precio del cupón sea válido y menor que el original -->
+									{#if !isNaN(precioCupon) && precioCupon > 0 && precioCupon < precioOriginal}
+										{@const descuento = Math.round(
+											((precioOriginal - precioCupon) / precioOriginal) * 100
+										)}
+										{#if descuento > 0}
+											<!-- La etiqueta span que muestra el descuento -->
+											<span class="discount-percentage-badge">-{descuento}%</span>
 										{/if}
-									</button>
-								</div>
-								<span class="texto-comprar">pedido</span>
+									{/if}
+								{/if}
+								<img
+									src={producto.col_imagen || 'https://via.placeholder.com/400x300?text=Producto'}
+									alt={producto.col_nombre}
+									on:error={e =>
+										(e.target.src = 'https://via.placeholder.com/400x300?text=Error+de+Imagen')}
+								/>
 							</div>
-						</div>
 
-						<div class="info-producto">
-							<div class="encabezado-producto">
-								<h3 class="titulo-producto">{producto.col_nombre}</h3>
-								<div class="linea-decorativa"></div>
-							</div>
-							<p class="descripcion-producto">
-								{producto.col_descripcion || 'Sin descripción disponible'}
-							</p>
-							<div class="etiqueta-precio">
-								{formatearPrecio(producto.col_precio_puerta)}
-								<div class="contenedor-boton-accion">
+							<!-- Información del producto -->
+							<div class="product-info">
+								<div class="product-main-info">
+									<div class="product-header">
+										<h3 class="product-name">{producto.col_nombre}</h3>
+										{#if producto.col_stock > 0}
+											<!-- Mostrar cantidad de stock -->
+											<span class="discount-badge">stock ({producto.col_stock})</span>
+										{:else}
+											<span class="discount-badge out-of-stock">Agotado</span>
+										{/if}
+									</div>
+
+									<p class="product-description">
+										{producto.col_descripcion || 'Sin descripción disponible'}
+									</p>
+								</div>
+
+								<div class="product-actions">
+									<div class="product-price">
+										{#if producto.col_precio_domicilio11 && producto.col_cupon_descuento && producto.col_cupon_descuento.trim() !== ''}
+											<!-- Si hay cupón: Mostrar domicilio11 tachado y cupón como precio final -->
+											<span class="price-original-striked"
+												>{formatearPrecio(producto.col_precio_domicilio11)}</span
+											>
+											<span class="discounted-price">{producto.col_cupon_descuento}</span>
+										{:else}
+											<!-- Si no hay cupón: Mostrar domicilio11 como precio normal -->
+											<span class="discounted-price"
+												>{formatearPrecio(producto.col_precio_domicilio11)}</span
+											>
+										{/if}
+									</div>
+
 									<button
-										class="boton-carrito-agregar"
+										class="add-btn"
 										disabled={!producto.col_stock || producto.col_stock <= 0}
 										on:click={() => agregarAlCarrito(producto)}
 									>
-										<svg
-											viewBox="0 0 24 24"
-											class="icono-carrito-integrado"
-											fill="none"
-											stroke="currentColor"
-											stroke-width="2"
-										>
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
-											/>
-										</svg>
-										<span class="texto-pedir">Pedir</span>
+										+{#if productosAgregados[producto.col_nombre]}
+											<span class="checkmark" in:fly={{ y: -5, duration: 200 }}>✓</span>
+										{/if}
 									</button>
 								</div>
 							</div>
+						</div>
+					{/each}
+				{/if}
+			{:else}
+				{#each productosFiltrados as producto, i}
+					<div class="product-card" in:fly={{ y: 20, delay: i * 100 }}>
+						<!-- Imagen del producto -->
+						<div class="product-img">
+							<!-- Lógica para mostrar la etiqueta de descuento basada en col_cupon_descuento -->
+							{#if producto.col_precio_domicilio11 && producto.col_cupon_descuento && producto.col_cupon_descuento.trim() !== ''}
+								{@const precioOriginal = producto.col_precio_domicilio11}
+								{@const precioCupon = parseCurrencyString(producto.col_cupon_descuento)}
 
-							<div class="tiempo-envio">
-								<svg class="icono-reloj" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width={2}
-										d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-									/>
-								</svg>
-								<span class="texto-envio">Disponible</span>
+								<!-- Verificar que el precio del cupón sea válido y menor que el original -->
+								{#if !isNaN(precioCupon) && precioCupon > 0 && precioCupon < precioOriginal}
+									{@const descuento = Math.round(
+										((precioOriginal - precioCupon) / precioOriginal) * 100
+									)}
+									{#if descuento > 0}
+										<!-- La etiqueta span que muestra el descuento -->
+										<span class="discount-percentage-badge">-{descuento}%</span>
+									{/if}
+								{/if}
+							{/if}
+							<img
+								src={producto.col_imagen || 'https://via.placeholder.com/400x300?text=Producto'}
+								alt={producto.col_nombre}
+								on:error={e =>
+									(e.target.src = 'https://via.placeholder.com/400x300?text=Error+de+Imagen')}
+							/>
+						</div>
+
+						<!-- Información del producto -->
+						<div class="product-info">
+							<div class="product-main-info">
+								<div class="product-header">
+									<h3 class="product-name">{producto.col_nombre}</h3>
+									{#if producto.col_stock > 0}
+										<!-- Mostrar cantidad de stock -->
+										<span class="discount-badge">stock ({producto.col_stock})</span>
+									{:else}
+										<span class="discount-badge out-of-stock">Agotado</span>
+									{/if}
+								</div>
+
+								<p class="product-description">
+									{producto.col_descripcion || 'Sin descripción disponible'}
+								</p>
+							</div>
+
+							<div class="product-actions">
+								<div class="product-price">
+									{#if producto.col_precio_domicilio11 && producto.col_cupon_descuento && producto.col_cupon_descuento.trim() !== ''}
+										<!-- Si hay cupón: Mostrar domicilio11 tachado y cupón como precio final -->
+										<span class="price-original-striked"
+											>{formatearPrecio(producto.col_precio_domicilio11)}</span
+										>
+										<span class="discounted-price">{producto.col_cupon_descuento}</span>
+									{:else}
+										<!-- Si no hay cupón: Mostrar domicilio11 como precio normal -->
+										<span class="discounted-price"
+											>{formatearPrecio(producto.col_precio_domicilio11)}</span
+										>
+									{/if}
+								</div>
+
+								<button
+									class="add-btn"
+									disabled={!producto.col_stock || producto.col_stock <= 0}
+									on:click={() => agregarAlCarrito(producto)}
+								>
+									+{#if productosAgregados[producto.col_nombre]}
+										<span class="checkmark" in:fly={{ y: -5, duration: 200 }}>✓</span>
+									{/if}
+								</button>
 							</div>
 						</div>
 					</div>
@@ -251,439 +364,353 @@
 	</div>
 </div>
 
-<!-- Importante: esto muestra el modal del carrito abierto -->
+<!-- Importante: esto muestra el modal del carrito abierto sin overlay adicional -->
 {#if $carritoVisible}
-	<div class="carrito-flotante">
+	<div class="carrito-flotante solo-movil">
 		<Carrito />
 	</div>
 {/if}
 
 <style>
-	/* Estilos del Contenedor Principal */
-	.contenedor-principal {
-		padding: -2rem;
-	}
-
-	@media (max-width: 768px) {
-		.contenedor-principal {
-			padding-top: 40px;
-		}
-	}
-
-	/* Estilos del Catálogo */
-	.contenedor-catalogo {
-		width: auto;
+	.menu-container {
+		font-family: 'Arial', sans-serif;
 		max-width: 100%;
 		margin: 0 auto;
-		padding: 2rem 1rem;
-		background: linear-gradient(180deg, #14213d 0%, #1e3a5f 30%, rgb(0, 0, 0) 60%, #0a1929 100%);
-		background-attachment: fixed;
-		backdrop-filter: blur(30px);
-		border-radius: 0; /* Borde redondeado eliminado */
-		box-shadow: none; /* Sombra eliminada (parece borde visual) */
+		background: #f8f9fa;
+		border-radius: 8px;
 		overflow: hidden;
+		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+		margin-top: 0;
+		z-index: 1; /* Asegura que esté por debajo de las categorías pero encima del fondo */
 	}
 
-	/* Estilos de la Cabecera de Sección */
-	.seccion-cabecera {
-		margin-bottom: 2rem;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 1rem;
+	/* Espaciador solo visible en móvil */
+	.spacer-mobile {
+		display: none;
 	}
 
-	/* Estilos de la Barra de Categorías */
-	.barra-categorias {
+	/* Configuración especial para PC - contenedor al borde izquierdo */
+	@media (min-width: 769px) {
+		.menu-container {
+			position: relative;
+			margin-left: 0; /* Elimina margen izquierdo */
+			padding-left: 0; /* Elimina padding izquierdo */
+			left: 0 !important; /* Posición completamente a la izquierda */
+			border-radius: 0; /* Elimina borde redondeado en el lado izquierdo */
+			border-top-right-radius: 8px; /* Mantiene borde redondeado en el lado derecho */
+			border-bottom-right-radius: 8px;
+			max-width: 1000px; /* Limita el ancho máximo */
+			width: 100% !important;
+		}
+
+		.category-nav {
+			padding-left: 16px; /* Padding interno para no pegar el texto al borde */
+		}
+
+		.product-grid {
+			padding-left: 16px; /* Padding interno para los productos */
+		}
+
+		.section-title {
+			padding-left: 16px; /* Padding para el título de la sección */
+			margin-left: 0;
+		}
+	}
+
+	/* Contenedor de la barra de categorías fija */
+	.category-nav-container {
+		position: fixed;
+		top: 64px; /* Justo debajo del header (64px) */
+		left: 0;
+		right: 0;
+		width: 100%;
+		z-index: 90; /* Ajustado para no interferir con los modales (que suelen usar 1000+) */
+		background: white;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+		pointer-events: auto; /* Asegura que los eventos de mouse funcionen */
+	}
+
+	/* Espaciador para compensar la altura de la barra de categorías fija */
+	.category-nav-spacer {
+		height: 60px; /* Altura aproximada de la barra de categorías */
+		width: 100%;
+	}
+
+	.category-nav {
+		padding: 7px;
 		overflow-x: auto;
 		white-space: nowrap;
-		scrollbar-width: thin;
-		-ms-overflow-style: thin;
-		padding: 0.75rem;
-		border-radius: 8px;
-		background: rgba(0, 0, 0, 0.1);
-		width: 100%;
-		max-width: 100%;
+		background: white;
+		border-bottom: 1px solid #e0e0e0;
+		padding-top: 15px;
+		padding-bottom: 12px;
+		padding-right: 24px; /* Añadir más espacio a la derecha */
+		scrollbar-width: thin; /* Para Firefox */
 	}
 
-	@media (min-width: 768px) {
-		.barra-categorias {
-			display: flex;
-			justify-content: center;
-		}
+	/* Personalización de la barra de desplazamiento para Webkit (Chrome, Safari, etc.) */
+	.category-nav::-webkit-scrollbar {
+		height: 4px;
 	}
 
-	/* Estilos para ocultar la barra de desplazamiento en navegadores WebKit */
-	@media (min-width: 768px) {
-		.barra-categorias::-webkit-scrollbar {
-			width: 0; /* Ancho de la barra de desplazamiento */
-			height: 0; /* Altura de la barra de desplazamiento */
-		}
-
-		/* Estilos para el pulgar de la barra de desplazamiento en navegadores WebKit */
-		.barra-categorias::-webkit-scrollbar-thumb {
-			background: transparent; /* Color del pulgar */
-		}
-
-		/* Estilos para la pista de la barra de desplazamiento en navegadores WebKit */
-		.barra-categorias::-webkit-scrollbar-track {
-			background: transparent; /* Color de la pista */
-		}
+	.category-nav::-webkit-scrollbar-track {
+		background: #f1f1f1;
+		border-radius: 10px;
 	}
 
-	.barra-categorias .flex {
-		gap: 0.75rem;
-		display: inline-flex;
-		align-items: center;
-		flex-wrap: nowrap;
+	.category-nav::-webkit-scrollbar-thumb {
+		background: #e0e0e0;
+		border-radius: 10px;
 	}
-	.boton-categoria {
-		background: transparent;
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		padding: 0.5rem 1rem;
-		border-radius: 9999px;
-		font-weight: 500;
-		transition: all 0.3s ease;
-		white-space: nowrap;
+
+	.category-btn {
+		padding: 6px 16px;
+		margin-right: 8px;
+		border-radius: 20px;
+		font-size: 14px;
 		cursor: pointer;
-		font-size: 1.105rem;
-		display: inline-block;
-
-		/* 🎯 Texto degradado siempre */
-		background-image: linear-gradient(90deg, #007aff, #00c6ff);
-		background-clip: text;
-		-webkit-background-clip: text;
-		color: transparent;
-		-webkit-text-fill-color: transparent;
-	}
-
-	.boton-categoria.activo {
-		/* 🎯 Fondo visible solo en activo */
-		background-color: rgba(0, 123, 255, 0.929); /* azul clarito, 15% opacidad */
-		border: 1.3px solid rgb(253, 253, 253);
-		backdrop-filter: blur(4px); /* opcional: para un efecto de vidrio */
-	}
-
-	/* Estilos de la Cuadrícula de Productos */
-	.cuadricula-productos-horizontal {
-		display: flex;
-		overflow-x: auto;
-		padding-bottom: 1rem;
-		-webkit-overflow-scrolling: touch;
-		scrollbar-width: none;
-		-ms-overflow-style: none;
-		padding-left: 1rem;
-	}
-
-	.cuadricula-productos-horizontal .tarjeta-producto {
-		margin-right: 1.5rem;
-		flex-shrink: 0;
-		width: 300px;
-	}
-
-	.cuadricula-productos-horizontal .tarjeta-producto:last-child {
-		margin-right: 0;
-	}
-
-	/* Estilos de la Tarjeta de Producto */
-	.tarjeta-producto {
-		position: relative;
-		border-radius: 1rem;
-		overflow: hidden;
-		background: rgba(255, 255, 255, 0.05);
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-		display: flex;
-		flex-direction: column;
-		height: auto;
-		width: 300px;
-		flex-shrink: 0;
-		margin-right: 1rem;
-	}
-
-	.tarjeta-producto:last-child {
-		margin-right: 0;
-	}
-
-	.tarjeta-producto:hover {
-		transform: translateY(-0.3rem);
-		border-color: rgba(255, 255, 255, 0.2);
-		box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
-	}
-
-	/* Estilos del Contenedor de Imagen del Producto */
-	.contenedor-imagen-producto {
-		position: relative;
-		width: 100%;
-		aspect-ratio: 4 / 3;
-		overflow: hidden;
-		border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-	}
-
-	.imagen-producto {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-		transition: transform 0.6s ease;
-	}
-
-	.tarjeta-producto:hover .imagen-producto {
-		transform: scale(1.03);
-	}
-
-	/* Estilos de la Información del Producto */
-	.info-producto {
-		padding: 1.5rem;
-		color: white;
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-		background: linear-gradient(to bottom, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.2));
-		border-radius: 0 0 1rem 1rem;
-	}
-
-	.encabezado-producto {
-		position: relative;
-		margin-bottom: 0.5rem;
-	}
-
-	.titulo-producto {
-		font-size: 1.4rem;
-		font-weight: 700;
-		color: #ffffff;
-		margin-bottom: 0.5rem;
-		line-height: 1.3;
-		letter-spacing: 0.5px;
-		text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-	}
-
-	.linea-decorativa {
-		width: 40px;
-		height: 3px;
-		background: linear-gradient(to right, #fd7e14, #ffc107);
-		margin-top: 0.5rem;
-		border-radius: 2px;
-		box-shadow: 0 2px 4px rgba(253, 126, 20, 0.3);
-	}
-
-	.descripcion-producto {
-		font-size: 0.95rem;
-		line-height: 1.5;
-		color: #e2e8f0;
-		margin: 0.75rem 0;
-		padding-left: 0.5rem;
-		border-left: 2px solid rgba(255, 255, 255, 0.1);
-		min-height: 3em;
-	}
-
-	.etiqueta-precio {
-		font-size: 1.5rem;
-		font-weight: 700;
-		color: #ffc107;
-		padding: 0.5rem;
-		background: rgba(0, 0, 0, 0.2);
-		border-radius: 8px;
-		text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-		letter-spacing: 0.5px;
-		display: flex;
-		align-items: center;
-		justify-content: space-between; /* Cambio aquí para distribuir espacio */
-		gap: 1rem; /* Espacio entre precio y botón */
-	}
-
-	.etiqueta-precio span:first-child {
-		text-align: left; /* Alinear precio a la izquierda */
-		margin-right: auto; /* Empuja el contenido siguiente hacia la derecha */
-	}
-
-	.contenedor-boton-accion {
-		flex-shrink: 0; /* Evita que el botón se encoja */
-	}
-
-	/* Actualizar los estilos del botón */
-	.boton-carrito-agregar {
-		display: flex;
-		align-items: center;
-		padding: 0.5rem 1rem;
-		border-radius: 9999px;
-		background: #2e8b57; /* Verde mar oscuro (SeaGreen) */
 		border: none;
-		transition: all 0.3s ease;
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+		background: #f0f0f0;
+		color: #555;
 	}
 
-	.boton-carrito-agregar:hover {
-		background: #3cb371; /* Verde mar medio al hover */
+	.category-btn.active {
+		background: #ffeeee;
+		color: #ff4444;
+		border: 1px solid #ff4444;
+	}
+
+	.section-title {
+		margin: 16px 0 12px 16px;
+		font-size: 18px;
+		font-weight: 600;
+		color: #ff4444;
+	}
+
+	/* Nuevo contenedor grid para productos */
+	.product-grid {
+		padding: 0 12px 16px;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	/* En pantallas grandes: 2 columnas */
+	@media (min-width: 769px) {
+		.product-grid {
+			display: grid;
+			grid-template-columns: repeat(2, 1fr);
+			gap: 16px;
+		}
+	}
+
+	/* Estilo de tarjeta de producto optimizada como lista */
+	.product-card {
+		display: flex;
+		padding: 10px;
+		background: white;
+		border-radius: 8px;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+		position: relative;
+		transition: all 0.2s ease;
+		border: 1px solid rgba(0, 0, 0, 0.03);
+		align-items: center;
+	}
+
+	.product-card:hover {
+		box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
 		transform: translateY(-1px);
 	}
 
-	.icono-carrito-integrado {
-		width: 16px;
-		height: 16px;
-		margin-right: 4px;
-		vertical-align: middle;
-		color: #ffffff; /* Blanco para mejor contraste */
-	}
-
-	.texto-pedir {
-		display: inline-flex;
-		align-items: center;
-		font-size: 0.875rem;
-		font-weight: 500;
-		letter-spacing: 0.5px;
-		color: #ffffff; /* Blanco para mejor contraste */
-	}
-
-	/* Estilos de la Etiqueta de Stock */
-	.etiqueta-stock {
-		position: absolute;
-		top: 0.5rem;
-		left: 0.5rem;
-		padding: 0.2rem 0.6rem;
-		border-radius: 9999px;
-		font-size: 0.7rem;
-		font-weight: 500;
-		backdrop-filter: blur(4px);
-		z-index: 10;
-	}
-
-	.stock-disponible {
-		color: #2e8b57;
-		background-color: rgba(#2e8b57);
-	}
-
-	.stock-agotado {
-		color: #fee2e2;
-		background-color: rgba(220, 38, 38, 0.3);
-	}
-
-	/* Estilos del Esqueleto de Carga */
-	@keyframes shimmer {
-		0% {
-			background-position: -468px 0;
-		}
-
-		100% {
-			background-position: 468px 0;
-		}
-	}
-
-	.esqueleto-cargando {
-		background: linear-gradient(
-			to right,
-			rgba(255, 255, 255, 0.1) 8%,
-			rgba(255, 255, 255, 0.2) 18%,
-			rgba(255, 255, 255, 0.1) 33%
-		);
-		background-size: 800px 104px;
-		animation: shimmer 1.5s linear infinite;
-		border-radius: 0.8rem;
-		height: auto;
-		display: flex;
-		flex-direction: column;
-	}
-
-	/* Estilos para pantallas muy pequeñas */
-	@media (max-width: 375px) {
-		.cuadricula-productos-horizontal {
-			grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-			gap: 0.75rem;
-			padding: 0.75rem;
-		}
-
-		.titulo-producto {
-			font-size: 3rem;
-			margin-bottom: 0.1rem;
-		}
-
-		.descripcion-producto {
-			font-size: 2rem;
-			line-height: 1.2;
-			margin-bottom: 0.25rem;
-		}
-
-		.etiqueta-precio {
-			font-size: 2.6rem;
-			margin-bottom: 1rem;
-		}
-
-		.boton-carrito-agregar {
-			width: 7rem;
-			height: 7rem;
-			font-size: 2.2rem;
-			bottom: 0.25rem;
-			right: 0.25rem;
-		}
-	}
-
-	/* Nuevos estilos para el scroll horizontal */
-	.cuadricula-productos-horizontal {
-		display: flex;
-		overflow-x: auto;
-		padding-bottom: 1rem;
-		-webkit-overflow-scrolling: touch;
-		scrollbar-width: none;
-		-ms-overflow-style: none;
-		padding-left: 1rem;
-	}
-
-	.cuadricula-productos-horizontal .tarjeta-producto {
-		margin-right: 1.5rem;
+	/* Imagen más pequeña y con mejor formato */
+	.product-img {
+		width: 60px;
+		height: 60px;
+		border-radius: 6px;
+		background: #f0f0f0;
+		overflow: hidden;
 		flex-shrink: 0;
-		width: 300px;
+		border: 1px solid rgba(0, 0, 0, 0.05);
+		position: relative;
 	}
 
-	.cuadricula-productos-horizontal .tarjeta-producto:last-child {
-		margin-right: 0;
+	.product-img img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
 	}
 
-	.contenedor-boton-comprar {
+	/* Nueva etiqueta para el porcentaje de descuento */
+	.discount-percentage-badge {
 		position: absolute;
-		bottom: 1rem;
-		right: 1rem;
+		top: 0px;
+		left: 0px;
+		background-color: rgba(255, 68, 68, 0.9);
+		color: white;
+		padding: 1px 4px;
+		border-bottom-right-radius: 4px;
+		border-top-left-radius: 6px;
+		font-size: 9px;
+		font-weight: bold;
+		line-height: 1.2;
+		z-index: 2;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+	}
+
+	/* Información del producto reorganizada */
+	.product-info {
+		margin-left: 12px;
+		flex: 1;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		min-width: 0;
+	}
+
+	.product-main-info {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.product-header {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		flex-wrap: wrap;
+		margin-bottom: 2px;
+	}
+
+	.product-name {
+		font-size: 15px;
+		font-weight: 600;
+		color: #333;
+		margin: 0;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-width: 100%;
+	}
+
+	.product-description {
+		font-size: 12px;
+		color: #777;
+		margin: 0;
+		margin-top: 3px;
+		line-height: 1.2;
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-height: 2.4em;
+	}
+
+	.product-actions {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin-left: 8px;
+	}
+
+	.product-price {
+		text-align: right;
+		white-space: nowrap;
 		display: flex;
 		flex-direction: column;
-		align-items: center;
-		gap: 0.3rem;
-		z-index: 20;
+		align-items: flex-end;
+		gap: 0px;
+		line-height: 1.2; /* Ajustado para mejor alineación vertical */
 	}
 
-	.carrito-container {
-		position: relative;
-		z-index: 200;
+	/* Estilo para el precio original cuando hay descuento (tachado) */
+	.price-original-striked {
+		text-decoration: line-through; /* Tachado */
+		font-size: 15px; /* Mismo tamaño */
+		font-weight: 600; /* Mismo grosor */
+		color: #888; /* Color gris */
 	}
 
-	.boton-carrito-flotante {
-		width: 40px;
-		height: 40px;
-		border-radius: 50%;
-		background: linear-gradient(135deg, #dc3545 0%, #fd7e14 50%, #ffc107 100%);
+	/* Estilo para el precio final (ya sea el de cupón o el normal) */
+	.discounted-price {
+		font-size: 15px;
+		font-weight: 600;
+		color: #ff4444; /* Color rojo */
+	}
+
+	/* Botón de añadir optimizado */
+	.add-btn {
+		width: 28px;
+		height: 28px;
+		background: #4caf50; /* Cambiado a verde */
+		color: white;
 		border: none;
+		border-radius: 4px;
+		font-size: 16px;
+		cursor: pointer;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		cursor: pointer;
-		transition: all 0.3s ease;
-		color: white;
+		transition: all 0.2s ease;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+		position: relative;
 	}
 
-	.notificacion-carrito {
-		position: absolute;
-		top: -8px;
-		right: -8px;
-		background: #e30808;
-		color: white;
-		font-size: 12px;
+	.add-btn:hover:not(:disabled) {
+		background: #45a049; /* Verde más oscuro para hover */
+		transform: translateY(-1px);
+		box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+	}
+
+	.add-btn:disabled {
+		background: #cccccc;
+		cursor: not-allowed;
+	}
+
+	/* Estilo para el signo de verificación */
+	.checkmark {
+		margin-left: 2px;
 		font-weight: bold;
-		min-width: 18px;
-		height: 18px;
-		border-radius: 9999px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 2px;
-		border: 2px solid #ffffff;
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+		font-size: 14px;
+		color: white;
+		display: inline-block;
+	}
+
+	/* Estilos responsivos para móviles */
+	@media (max-width: 480px) {
+		.product-card {
+			padding: 8px;
+		}
+
+		.product-img {
+			width: 50px;
+			height: 50px;
+		}
+
+		/* Ajustar tamaño de la etiqueta de descuento en móvil si es necesario */
+		.discount-percentage-badge {
+			font-size: 8px;
+			padding: 1px 3px;
+		}
+
+		.product-description {
+			font-size: 11px;
+			-webkit-line-clamp: 1;
+			max-height: 1.2em;
+		}
+
+		.price-original-striked {
+			font-size: 13px; /* Ajustar tamaño en móvil */
+		}
+
+		.discounted-price {
+			font-size: 13px;
+		}
+
+		.add-btn {
+			width: 24px;
+			height: 24px;
+			font-size: 14px;
+		}
 	}
 
 	.carrito-flotante {
@@ -691,52 +718,230 @@
 		top: 50%;
 		right: 20px;
 		transform: translateY(-50%);
-		z-index: 100;
+		z-index: 1000; /* Mantiene el carrito por encima de las categorías */
+		pointer-events: auto; /* Asegura que se pueda interactuar con el carrito */
 	}
 
-	.texto-comprar {
-		color: #dcfce7;
-		font-size: 0.75rem;
-		font-weight: 500;
-		text-transform: uppercase;
-		letter-spacing: 0.5px;
-		background-color: #2e8b57;
-		padding: 0.2rem 0.6rem;
-		border-radius: 9999px;
-		backdrop-filter: blur(4px);
-		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-		transition: all 0.3s ease;
+	/* Nueva clase para mostrar solo en móvil */
+	@media (min-width: 769px) {
+		.solo-movil {
+			display: none;
+		}
 	}
 
-	.contenedor-boton-comprar:hover .texto-comprar {
-		background-color: rgba(34, 197, 94, 0.8);
-		transform: translateY(1px);
+	/* Ajuste para que el carrito ocupe ancho total en móvil */
+	@media (max-width: 768px) {
+		.carrito-flotante {
+			left: 0;
+			right: 0;
+			width: 100%;
+			display: flex;
+			justify-content: center;
+		}
+
+		.carrito-flotante :global(> div),
+		.carrito-flotante :global(> section),
+		.carrito-flotante :global(> article) {
+			width: 100%;
+			max-width: 100%;
+			margin: 0;
+			border-radius: 0;
+		}
 	}
 
-	/* Estilos para el tiempo de envío */
-	.tiempo-envio {
+	/* Mover la columna hacia la izquierda SOLO en PC */
+	@media (min-width: 769px) {
+		.menu-container {
+			position: relative;
+			left: -80px !important;
+			width: calc(100% + 0px) !important;
+		}
+
+		.category-nav-container {
+			top: 64px; /* Asegurar que está justo debajo del header en PC */
+			left: 0; /* Resetear posición para abarcar toda la pantalla */
+			right: 35%; /* Dejar espacio para la columna del carrito */
+			padding-left: 0; /* Quitar padding que causa desalineación */
+			width: 65%; /* Ancho ajustado para coincidir con la columna izquierda */
+			z-index: 95; /* Ajustado para no interferir con modales pero quedar sobre el contenido normal */
+			background-color: white; /* Fondo más sólido */
+			-webkit-backface-visibility: hidden; /* Mejora el rendimiento */
+			backface-visibility: hidden;
+		}
+
+		/* Hacemos que los elementos sean visibles y funcionales */
+		.product-container {
+			position: relative;
+			z-index: 2; /* Mayor que el contenedor pero menor que las categorías */
+		}
+
+		.product-grid {
+			visibility: visible !important;
+			opacity: 1 !important;
+		}
+
+		.category-nav {
+			max-width: none; /* Eliminar el ancho máximo para que se extienda más */
+			margin-left: 7%; /* Alinear con el margen izquierdo del contenido */
+			padding-left: 0; /* Quitar el padding izquierdo */
+			padding-right: 40px; /* Añadir más espacio a la derecha */
+			display: flex; /* Asegurar que los botones permanecen en una línea */
+			flex-wrap: nowrap; /* Evitar que los botones se envuelvan */
+			overflow-x: auto; /* Mantener el scroll horizontal */
+			scrollbar-width: thin; /* Barra de desplazamiento delgada para Firefox */
+		}
+
+		/* Mejora del scroll para categorías en PC */
+		.category-nav::-webkit-scrollbar {
+			height: 4px; /* Altura muy pequeña para la barra de desplazamiento */
+		}
+
+		.category-nav::-webkit-scrollbar-track {
+			background: #f1f1f1; /* Color claro para el track */
+			border-radius: 10px; /* Bordes redondeados */
+		}
+
+		.category-nav::-webkit-scrollbar-thumb {
+			background: #e0e0e0; /* Color claro para el thumb */
+			border-radius: 10px; /* Bordes redondeados */
+		}
+
+		.category-nav::-webkit-scrollbar-thumb:hover {
+			background: #cccccc; /* Ligeramente más oscuro al hover */
+		}
+
+		.category-nav-spacer {
+			height: 60px; /* Altura consistente para PC */
+		}
+	}
+
+	/* Ajustes adicionales para móvil */
+	@media (max-width: 768px) {
+		.menu-container {
+			margin-top: 0;
+		}
+
+		.category-nav-container {
+			top: 120px; /* Más espacio en móvil debido al header más grande */
+			z-index: 90; /* Asegura que se mantenga debajo de los modales en móvil también */
+			position: fixed;
+		}
+
+		.category-nav {
+			padding-right: 40px; /* Añadir más espacio a la derecha en móvil también */
+		}
+
+		.category-nav-spacer {
+			height: 70px; /* Un poco más alto en móvil */
+		}
+
+		.product-grid {
+			display: flex;
+			flex-direction: column;
+		}
+	}
+
+	/* Estilos para garantizar que modales y carrito estén por encima */
+	:global(body),
+	:global(html) {
+		background-color: #fff;
+	}
+
+	/* Estilos para el mensaje de "no se encontraron resultados" */
+	.empty-message {
+		grid-column: 1 / -1; /* Ocupa todas las columnas */
+		padding: 20px;
+		text-align: center;
+		background-color: #f9fafb;
+		border-radius: 8px;
+		margin: 15px 0;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+	}
+
+	.no-results-search {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 20px 10px;
+	}
+
+	.no-results-icon {
+		width: 70px;
+		height: 70px;
+		background-color: #f3f4f6;
+		border-radius: 50%;
 		display: flex;
 		align-items: center;
-		gap: 0.3rem;
-		margin-top: 0.5rem;
+		justify-content: center;
+		margin-bottom: 15px;
 	}
 
-	.icono-reloj {
-		width: 0.875rem;
-		height: 0.875rem;
-		color: #98fb98; /* Verde seda claro */
+	.no-results-icon i {
+		font-size: 36px;
+		color: #6b7280;
 	}
 
-	.texto-envio {
-		font-size: 0.875rem;
-		color: #98fb98; /* Verde seda claro */
-		font-weight: 500;
-		letter-spacing: 0.02em;
+	.no-results-title {
+		font-size: 1.1rem;
+		font-weight: 600;
+		color: #374151;
+		margin-bottom: 8px;
+		line-height: 1.4;
 	}
 
-	.tiempo-envio:hover {
-		opacity: 0.9;
-		transform: translateY(-1px);
-		transition: all 0.3s ease;
+	.no-results-subtitle {
+		font-size: 0.95rem;
+		color: #6b7280;
+		margin-bottom: 5px;
+	}
+
+	.empty-category,
+	.empty-store {
+		font-size: 1rem;
+		color: #4b5563;
+		padding: 15px;
+	}
+
+	/* Separador para título de la categoría */
+	.category-title-separator {
+		grid-column: 1 / -1;
+		margin: 10px 0 5px;
+		padding: 10px 0;
+		border-top: 1px solid #e5e7eb;
+		border-bottom: 1px solid #e5e7eb;
+		background-color: #f3f4f6;
+		text-align: center;
+		border-radius: 6px;
+	}
+
+	.category-title-separator h3 {
+		font-size: 1rem;
+		font-weight: 600;
+		color: #4b5563;
+		margin: 0;
+	}
+
+	/* Ajustes específicos para móvil */
+	@media (max-width: 768px) {
+		.no-results-icon {
+			width: 60px;
+			height: 60px;
+		}
+
+		.no-results-icon i {
+			font-size: 30px;
+		}
+
+		.no-results-title {
+			font-size: 1rem;
+		}
+
+		.no-results-subtitle {
+			font-size: 0.85rem;
+		}
+
+		.category-title-separator h3 {
+			font-size: 0.9rem;
+		}
 	}
 </style>

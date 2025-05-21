@@ -10,6 +10,13 @@
 				"SUPABASE_ACCESS_TOKEN": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jZWRzc2RsemhyeWZzY2phZ3JkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTczNzAwMSwiZXhwIjoyMDYxMzEzMDAxfQ.ZrR0w8mQySrFxpcpTUTphsKI_ypd0gH8lqbT72pAvVU",
 				"SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jZWRzc2RsemhyeWZzY2phZ3JkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTczNzAwMSwiZXhwIjoyMDYxMzEzMDAxfQ.ZrR0w8mQySrFxpcpTUTphsKI_ypd0gH8lqbT72pAvVU"
 			}
+		},
+		"github.com/Operative-Sh/web-eval-agent": {
+			"command": "python",
+			"args": ["web-eval-agent/webEvalAgent/mcp_server.py"],
+			"env": {
+				"OPERATIVE_API_KEY": "op-RVFa_9avgvEOfu9iwVfzyZamV80Fa95jQyzxJePAJC8"
+			}
 		}
 	}
 }

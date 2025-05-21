@@ -1,0 +1,6 @@
+# Configuración del Proyecto
+language: es
+naming: es
+format: auto_fix_all
+compare: auto_verify_changes
+suggest: optimize_request

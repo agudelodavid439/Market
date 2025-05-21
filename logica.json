@@ -1,0 +1,41 @@
+{
+	"sistema": "e-commerce con IA integrada",
+	"modulos": {
+		"carrito": {
+			"store": "carritoTienda.ts",
+			"componentes": ["carrito.svelte", "productos.svelte", "Finalizar_pedido.svelte"],
+			"flujo": "agregar -> actualizar -> checkout"
+		},
+		"inventario": {
+			"store": null,
+			"componentes": ["editar_producto.svelte", "productos_body.svelte"],
+			"flujo": "crear -> editar -> eliminar"
+		},
+		"pedidos": {
+			"store": null,
+			"componentes": ["pedidos_body.svelte", "editar_pedido.svelte"],
+			"flujo": "listar -> editar -> actualizar"
+		},
+		"chat_ia": {
+			"store": "promptStore.js",
+			"componentes": ["chat_principal_Ai.svelte", "textarea_Ai.svelte", "TokenCounter.svelte"],
+			"flujo": "pregunta -> procesamiento -> respuesta"
+		}
+	},
+	"backend": {
+		"base_datos": "Supabase",
+		"tablas_principales": ["products", "pedidos", "user_registrations"],
+		"conexiones": ["conexion_products.ts", "conexion_pedidos.ts", "conexion_users.js"]
+	},
+	"faltantes": {
+		"usuarios": "solo conexión básica",
+		"autenticacion": "no implementada",
+		"panel_admin": "no existe",
+		"seguridad": "políticas básicas"
+	},
+	"tecnologias": {
+		"frontend": ["Svelte", "TypeScript", "TailwindCSS"],
+		"backend": ["Supabase", "Node.js"],
+		"herramientas": ["Vite", "Vitest"]
+	}
+}

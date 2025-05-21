@@ -1,15 +1,12 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
-	import { searchTerm } from '$lib/estadoGlobal.js';
+	import { terminoBusqueda } from '$lib/stores/buscadorStore';
 
-	let searchQuery = '';
 	let isFocused = false;
 
-	const dispatch = createEventDispatcher();
-
-	function handleSearch() {
-		searchTerm.set(searchQuery);
-		console.log('Buscando:', searchQuery);
+	// Actualizar el store cuando cambie el valor del input
+	function handleInput(event: Event) {
+		const target = event.target as HTMLInputElement;
+		$terminoBusqueda = target.value;
 	}
 </script>
 
@@ -17,11 +14,11 @@
 	<div class={`search-box ${isFocused ? 'search-box-focused' : ''}`}>
 		<input
 			type="text"
-			placeholder="Buscar..."
-			bind:value={searchQuery}
+			placeholder="Buscar productos..."
+			value={$terminoBusqueda}
+			on:input={handleInput}
 			on:focus={() => (isFocused = true)}
 			on:blur={() => (isFocused = false)}
-			on:input={handleSearch}
 			class="search-input"
 		/>
 		<button class="search-button">

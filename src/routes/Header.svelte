@@ -1,9 +1,11 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher, onMount } from 'svelte';
 	import { User, QrCode } from 'lucide-svelte';
 	import { fade } from 'svelte/transition';
 	import Buscador from '$lib/components/buscador.svelte';
 	import MenuIzquierda from '$lib/components/menu_izquierda.svelte';
+	import { carritoVisible } from '$lib/stores/carritoTienda';
+	import { writable } from 'svelte/store';
 
 	const despachadorDeEventos = createEventDispatcher();
 	let menuEstaAbierto = false;
@@ -11,6 +13,59 @@
 	function alternarMenu() {
 		menuEstaAbierto = !menuEstaAbierto;
 		despachadorDeEventos('alternarMenu', { estaAbierto: menuEstaAbierto });
+	}
+
+	// Código para el botón de carrito (similar al footer)
+	const fallbackStore = writable([]);
+	let productosStore = fallbackStore;
+	let cantidadProductos = 0;
+	let palpitando = writable(false);
+	let ultimaCantidad = 0;
+	let animacionEnCurso = false;
+
+	onMount(async () => {
+		try {
+			const module = await import('$lib/stores/carritoTienda');
+			productosStore = module.productosEnCarrito || fallbackStore;
+		} catch (error) {
+			console.error('Error cargando carritoTienda:', error);
+		}
+
+		const unsubscribe = productosStore.subscribe(items => {
+			if (items && Array.isArray(items)) {
+				const nuevaCantidad = items.reduce((sum, item) => sum + (item?.cantidad || 0), 0);
+
+				if (nuevaCantidad > ultimaCantidad) {
+					activarPalpitacion();
+				}
+
+				cantidadProductos = nuevaCantidad;
+				ultimaCantidad = nuevaCantidad;
+			} else {
+				cantidadProductos = 0;
+				ultimaCantidad = 0;
+			}
+		});
+
+		return unsubscribe;
+	});
+
+	function toggleCarrito() {
+		carritoVisible.update(value => !value);
+	}
+
+	function activarPalpitacion() {
+		if (animacionEnCurso) return;
+
+		animacionEnCurso = true;
+		palpitando.set(true);
+
+		setTimeout(() => {
+			palpitando.set(false);
+			setTimeout(() => {
+				animacionEnCurso = false;
+			}, 200);
+		}, 1000);
 	}
 </script>
 
@@ -42,16 +97,23 @@
 
 		<div class="columna-botones">
 			<div class="grupo-botones">
+				<button class="boton-accion carrito" on:click={toggleCarrito} aria-label="Ver carrito">
+					<div class="contenedor-icono-carrito {$palpitando ? 'palpitando' : ''}">
+						<i class="fa-solid fa-cart-shopping"></i>
+						{#if cantidadProductos > 0}
+							<span class="notificacion-cantidad">{cantidadProductos}</span>
+						{/if}
+					</div>
+				</button>
 				<button class="boton-inicio-sesion" aria-label="Iniciar sesión">
 					<User size={20} />
 					<span class="mensaje-flotante">Iniciar sesión</span>
 				</button>
-				<a href="#" class="icon-container boton-inicio-sesion" style="margin-top: 1px;">
-					<div class="icon-circle">
-						<i class="fa-solid fa-message icon text-xl"></i>
-					</div>
-					<span class="mensaje-flotante">Chat</span>
-				</a>
+				<!-- Reemplazo del botón QR por un botón de Chat -->
+				<button class="boton-accion chat texto-blanco" aria-label="Abrir chat">
+					<i class="fa-solid fa-message"></i>
+					<span class="mensaje-flotante">Abrir chat</span>
+				</button>
 			</div>
 		</div>
 
@@ -63,6 +125,14 @@
 
 <!-- Componente de menú lateral controlado por menuEstaAbierto -->
 <MenuIzquierda isOpen={menuEstaAbierto} />
+
+<!-- Agregar Font Awesome para los iconos -->
+<svelte:head>
+	<link
+		rel="stylesheet"
+		href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+	/>
+</svelte:head>
 
 <style>
 	/* Header container styling */
@@ -233,27 +303,9 @@
 		transition: all 0.2s ease;
 		z-index: 10;
 	}
-	.mensaje-chat {
-		position: absolute;
-		top: 100%;
-		left: 50%;
-		transform: translateX(-50%);
-		margin-top: 0.5rem;
-		padding: 0.5rem 0.75rem;
-		background: rgba(223, 14, 14, 0.8);
-		backdrop-filter: blur(4px);
-		border-radius: 0.5rem;
-		font-size: 0.75rem;
-		white-space: nowrap;
-		opacity: 0;
-		visibility: hidden;
-		transition: all 0.2s ease;
-		z-index: 10;
-	}
 
 	/* Show tooltip on button hover */
 	.boton-inicio-sesion:hover .mensaje-flotante,
-	.icon-container:hover .mensaje-flotante,
 	.boton-accion:hover .mensaje-flotante {
 		opacity: 1;
 		visibility: visible;
@@ -263,6 +315,71 @@
 	/* Text inside buttons */
 	.texto-boton {
 		font-size: 1rem;
+	}
+
+	/* Estilos para el botón de carrito */
+	.boton-accion.carrito {
+		background: linear-gradient(135deg, #007aff, #00c6ff);
+		color: white;
+	}
+
+	.boton-accion.carrito:hover {
+		background: linear-gradient(135deg, #0056b3, #0091c2);
+		box-shadow: 0 0 12px rgba(0, 122, 255, 0.5);
+	}
+
+	.contenedor-icono-carrito {
+		position: relative;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		height: 100%;
+	}
+
+	.notificacion-cantidad {
+		position: absolute;
+		top: -8px;
+		right: -8px;
+		background: #e30808;
+		color: white;
+		font-size: 12px;
+		font-weight: bold;
+		min-width: 18px;
+		height: 18px;
+		border-radius: 9999px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 2px;
+		border: 2px solid #ffffff;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+	}
+
+	@keyframes heartbeat {
+		0% {
+			transform: scale(1);
+		}
+		50% {
+			transform: scale(1.2);
+		}
+		100% {
+			transform: scale(1);
+		}
+	}
+
+	.palpitando {
+		animation: heartbeat 0.8s ease-out;
+	}
+
+	/* Estilos específicos para el botón de chat */
+	.boton-accion.chat {
+		background: #4caf50; /* Color verde para el chat */
+	}
+
+	.boton-accion.chat:hover {
+		background: #3d8b40;
+		box-shadow: 0 0 12px rgba(76, 175, 80, 0.5);
 	}
 
 	/* --- Media queries for responsive design --- */
@@ -300,14 +417,5 @@
 		.contenedor-principal {
 			padding: 0.5rem 0.75rem;
 		}
-	}
-
-	.texto-oculto {
-		opacity: 0;
-		transition: opacity 0.3s ease;
-	}
-
-	.icon-container:hover .texto-oculto {
-		opacity: 1;
 	}
 </style>
